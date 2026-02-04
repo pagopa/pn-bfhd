@@ -1,60 +1,39 @@
-openapi: 3.0.3
+openapi: 3.0.1
 info:
-  version: 1.0.0
-  termsOfService: https://termofservice.it
-  title: openapi BFHD project
-  description: API description for backend for helpdesk project
-  x-summary: OpenAPI servizi helpdesk pn
-  x-api-id: api-helpdesk-pn
-  contact:
-    email: pn@pagopa.it
-  license:
-    name: Licenza di PN
-    url: 'https://da-definire/'
+  title: >-
+    ${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}
+  version: NJ5fr8gqzM4IBOqaRTWLGdFMoHpnB3olSxEWH3UqVt8=
 servers:
-  - url: https://api.backoffice.pn.pagopa.it
-    description: Production environment
-  - url: https://api.backoffice.uat.pn.pagopa.it
-    description: Test environment
-  - url: https://api.backoffice.dev.pn.pagopa.it
-    description: Development environment
-tags:
-  - name: persons
-    description: Operations about a person
-  - name: logs
-    description: Operations about logs and extractions
-  - name: status
-    description: Operations about application status
-  - name: downtime
-    description: Operations about PN functionalities monitoring
-
+  - url: https://${stageVariables.DnsName}/{basePath}
+    variables:
+      basePath:
+        default: /${stageVariables.ServiceApiPath}
+    x-amazon-apigateway-endpoint-configuration:
+      disableExecuteApiEndpoint: true
 paths:
-  '/bfhd/logs/v1/notifications/info':
+  /logs/v1/notifications/info:
     post:
       tags:
         - logs
       x-api-permissions:
-        - 'log-extract-read'
+        - log-extract-read
       parameters:
         - in: header
           name: x-pagopa-pn-uid
           schema:
             type: string
-            pattern: '^[A-Za-z0-9-]*$'
+            pattern: ^[A-Za-z0-9-]*$
           required: true
         - in: header
           name: x-pagopa-pn-cx-type
           schema:
             type: string
-            pattern: '^[A-Za-z]*$'
+            pattern: ^[A-Za-z]*$
           required: true
-      security:                                                                # ONLY EXTERNAL
-        - bearerAuth: [ ]
       operationId: notificationInfoLogs
       x-pagopa-lambda-name: pn-notificationWrapper
-      x-pagopa-lambda-account: core            
-      description: >-
-        Download the logs archive containing the full info of a notification
+      x-pagopa-lambda-account: core
+      description: Download the logs archive containing the full info of a notification
       requestBody:
         required: true
         content:
@@ -82,7 +61,24 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+      x-amazon-apigateway-integration:
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-notificationWrapper/invocations
+        httpMethod: POST
+        requestParameters:
+          integration.request.header.x-pagopa-pn-cx-id: context.authorizer.cx_id
+          integration.request.header.x-pagopa-pn-cx-role: context.authorizer.cx_role
+          integration.request.header.x-pagopa-pn-uid: context.authorizer.uid
+          integration.request.header.x-pagopa-pn-jti: context.authorizer.cx_jti
+          integration.request.header.x-pagopa-pn-cx-type: context.authorizer.cx_type
+          integration.request.header.x-pagopa-pn-cx-groups: context.authorizer.cx_groups
+          integration.request.header.x-pagopa-pn-src-ch-details: context.authorizer.sourceChannelDetails
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+        timeoutInMillis: 29000
+        type: aws_proxy
 components:
+  parameters: {}
   schemas:
     SessionLogsRequestDto:
       type: object
@@ -119,12 +115,13 @@ components:
           type: string
           minLength: 11
           maxLength: 11
-          pattern: '^([0-9]{11})$'
+          pattern: ^([0-9]{11})$
         taxId:
           type: string
           minLength: 16
           maxLength: 16
-          pattern: '^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1})$'
+          pattern: >-
+            ^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1})$
         recipientType:
           $ref: '#/components/schemas/RecipientTypes'
     PersonTaxIdRequestDto:
@@ -165,14 +162,16 @@ components:
           type: boolean
         taxId:
           type: string
-          pattern: '^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1})$'
+          pattern: >-
+            ^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1})$
         personId:
           type: string
         iun:
           type: string
           minLength: 25
           maxLength: 25
-          pattern: '([A-Za-z]{4})-([A-Za-z]{4})-([A-Za-z]{4})-([0-9]{6})-([A-Za-z]{1})-([0-9]{1})'
+          pattern: >-
+            ([A-Za-z]{4})-([A-Za-z]{4})-([A-Za-z]{4})-([0-9]{6})-([A-Za-z]{1})-([0-9]{1})
         dateFrom:
           type: string
           format: date
@@ -220,15 +219,18 @@ components:
           description: URI reference of type definition
           type: string
         status:
-          description: The HTTP status code generated by the origin server for this occurrence of the problem.
-          type: integer
-          format: int32
+          description: >-
+            The HTTP status code generated by the origin server for this
+            occurrence of the problem.
+          type: number
           example: 503
           maximum: 600
           minimum: 100
           exclusiveMaximum: true
         title:
-          description: A short, summary of the problem type. Written in english and readable
+          description: >-
+            A short, summary of the problem type. Written in english and
+            readable
           example: Service Unavailable
           maxLength: 64
           pattern: ^[ -~]{0,64}$
@@ -245,7 +247,7 @@ components:
           type: string
         timestamp:
           description: date and time referred to UTC
-          example: 2022-07-27T12:22:33.444Z
+          example: '2022-07-27T12:22:33.444Z'
           type: string
           format: date-time
         errors:
@@ -260,14 +262,18 @@ components:
       properties:
         code:
           description: Internal code of the error, in human-readable format
-          example: PN_PARAMETER_TOO_LONG | PN_PARAMETER_TOO_SHORT | PN_DUPLICATE_ENTRY | etc...
+          example: >-
+            PN_PARAMETER_TOO_LONG | PN_PARAMETER_TOO_SHORT | PN_DUPLICATE_ENTRY
+            | etc...
           type: string
         element:
           description: Parameter or request body field name for validation error
-          example: 'body.order.item[2].quantity'
+          example: body.order.item[2].quantity
           type: string
         detail:
-          description: A human readable explanation specific to this occurrence of the problem.
+          description: >-
+            A human readable explanation specific to this occurrence of the
+            problem.
           example: Parameter not valid
           maxLength: 1024
           type: string
@@ -305,7 +311,8 @@ components:
     PnStatusResponseDto:
       title: PN actual status
       description: >-
-        PN functionalities and inefficiencies known list when the request is sent
+        PN functionalities and inefficiencies known list when the request is
+        sent
       type: object
       required:
         - functionalities
@@ -340,13 +347,16 @@ components:
         endDate:
           title: Inefficiency end date
           description: >-
-            if the inefficiency is still active, this field will be absent or _null_
+            if the inefficiency is still active, this field will be absent or
+            _null_
           type: string
           format: date-time
     RecipientTypes:
       title: PN recipient types
       type: string
-      enum: [ "PF", "PG"]
+      enum:
+        - PF
+        - PG
     PnFunctionalityStatus:
       title: PN functionalities' status
       type: string
@@ -356,9 +366,10 @@ components:
     PnFunctionality:
       title: PN functionalities
       description: >-
-        - __NOTIFICATION_CREATE__: the possibility to create new notifications
-        - __NOTIFICATION_VISUALIZATION__: the possibility to visualize the notifications and download the legalfacts
-        - __NOTIFICATION_WORKFLOW__: the notification process advancement
+        - __NOTIFICATION_CREATE__: the possibility to create new notifications -
+        __NOTIFICATION_VISUALIZATION__: the possibility to visualize the
+        notifications and download the legalfacts - __NOTIFICATION_WORKFLOW__:
+        the notification process advancement
       type: string
       enum:
         - NOTIFICATION_CREATE
@@ -368,12 +379,50 @@ components:
         - NOTIFICATION_CREATE
         - NOTIFICATION_VISUALIZATION
         - NOTIFICATION_WORKFLOW
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-security:
-  - bearerAuth: []
-
-
+  responses: {}
+tags:
+  - name: persons
+    description: Operations about a person
+  - name: logs
+    description: Operations about logs and extractions
+  - name: status
+    description: Operations about application status
+  - name: downtime
+    description: Operations about PN functionalities monitoring
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_5XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+      gatewayresponse.header.Strict-Transport-Security: '''max-age=31536000; includeSubDomains; preload'''
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+      gatewayresponse.header.Strict-Transport-Security: '''max-age=31536000; includeSubDomains; preload'''
+  BAD_REQUEST_PARAMETERS:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+      gatewayresponse.header.Access-Control-Expose-Headers: '''x-amzn-trace-id'''
+      gatewayresponse.header.Strict-Transport-Security: '''max-age=31536000; includeSubDomains; preload'''
+    responseTemplates:
+      application/json: >-
+        {"status": 400, "title": "VALIDATION ERROR", "traceId":
+        "$context.xrayTraceId", "errors": [ { "code": "PN_INVALID_PARAMETERS",
+        "detail": "Validation errors: $context.error.validationErrorString" } ]}
+  BAD_REQUEST_BODY:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+      gatewayresponse.header.Access-Control-Expose-Headers: '''x-amzn-trace-id'''
+      gatewayresponse.header.Strict-Transport-Security: '''max-age=31536000; includeSubDomains; preload'''
+    responseTemplates:
+      application/json: >-
+        {"status": 400, "title": "VALIDATION ERROR", "traceId":
+        "$context.xrayTraceId", "errors": [ { "code": "PN_INVALID_BODY",
+        "detail": "Validation errors: $context.error.validationErrorString" } ]}
+x-amazon-apigateway-request-validators:
+  basic:
+    validateRequestBody: true
+    validateRequestParameters: true
+  params-only:
+    validateRequestBody: false
+    validateRequestParameters: true
+x-amazon-apigateway-request-validator: basic

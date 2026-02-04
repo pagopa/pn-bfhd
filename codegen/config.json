@@ -1,0 +1,11 @@
+{
+    "openapi": [
+        {
+            "intendedUsage": "BO",
+            "openapiFiles": [
+                "api-internal-v1.yaml"
+            ],
+            "servicePath": "bfhd"
+        }
+    ]
+}

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'Example microservice deploy'
+Description: 'BFHD Microservice stack'
 
 Parameters:
   ProjectName:
@@ -11,7 +11,7 @@ Parameters:
     Type: String
     Description: ARN of alarm topic
 
-  WebApiDnsName:
+  BoApiDnsName:
     Type: String
     Description: 'The DNS name used for WEB rest API.'
   
@@ -19,38 +19,18 @@ Parameters:
     Type: String
     Description: 'Comma separated list of domains allowed to make cross origin request'
 
-  ContainerImageUri:
-    Type: String
-    Description: 'Exact container image URI with full repository and image digest'
-
-  MicroserviceNumber:
-    Type: Number
-    Description: 'Disambiguation useful for load balancer rules'
-
   TemplateBucketBaseUrl:
     Type: String
     Description: 'The S3 bucket from which to fetch the templates used by this stack.'
 
-  ECSClusterName:
-    Type: String
-    Description: 'The name of the ECS cluster where the microservice is going to be deployed'
-
   SubnetsIds:
-    Type: String
-    Description: 'subnets ids comma separated list. Where to deploy the microservice'
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: "subnets ids comma separated list. Where to deploy the microservice"
 
   VpcId:
     Type: String
     Description: 'VpcId where the microservice is going to be deployed'
   
-  EcsDefaultSecurityGroup:
-    Type: String
-    Description: 'Default security group required by infrastructure'
-
-  ApplicationLoadBalancerListenerArn:
-    Type: String
-    Description: 'Load balancer listener where HTTP endpoints is going to be registered'
-
   ApplicationLoadBalancerDomain:
     Type: String
     Description: 'Base URL of the load balancer where the service is going to be reachable'
@@ -67,25 +47,130 @@ Parameters:
     Type: String
     Description: 'keep track of used projects commitIds'
 
+  NotificationWrapperLambdaName:
+    Type: String
+    Description: 'The name of the lambda function used as wrapper for notification'
+    
+  NotificationWrapperLambdaTimeout:
+    Type: Number
+    Default: 30 
+    
+  NotificationWrapperLambdaMemorySize:
+    Type: Number
+    Default: 128
+
+  LambdasBucketName:
+    Type: String
+    Description: 'The name of the S3 bucket where lambda code is stored'
+    
+  BucketBasePath:
+    Type: String
+    Description: 'The base path inside the S3 bucket where lambda code and other resources are stored'
+    
+  BfhdWafRequestLimit:
+    Type: Number
+    Default: "1000" # requests per 5 minutes
+    
+  EnhancedWebSecurityEnabled:
+    Type: String
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: 'Enable enhanced web security features in WAF'
+    Default: "true"
+
 Resources:
 
-  # PN-TemplateBeMs microservice
-  TemplateBeMsMicroservice:
+ # lambda per lollipop playground
+  BfhdAPI:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/ecs-service.yaml"
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/api-gw-expose-service-openapi.yaml"
       Parameters:
-        MicroServiceUniqueName: !Sub '${ProjectName}-template-ms-be'
-        CpuValue: 512
-        MemoryAmount: 2GB
+        MicroServiceUniqueName: !Sub "${ProjectName}-bfhd"
+        IntendedUsage: BO
+        DnsName: !Ref BoApiDnsName
+        ProjectName: !Ref ProjectName
+        ServiceApiPath: "bfhd"
+        NetworkLoadBalancerLink: !Ref NetworkLoadBalancerLink
+        ApplicationLoadBalancerDomain: !Ref ApplicationLoadBalancerDomain
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-        ContainerImageURI: !Sub '${ContainerImageUri}'
-        ContainerEnvEntry1: !Sub 'AWS_REGIONCODE=${AWS::Region}'
-        MappedPaths: '/template-ms-be/*'
-        ECSClusterName: !Ref ECSClusterName
-        Subnets: !Ref SubnetsIds
-        VpcId: !Ref VpcId
-        EcsDefaultSecurityGroup: !Ref EcsDefaultSecurityGroup
-        LoadBalancerListenerArn: !Ref ApplicationLoadBalancerListenerArn
-        LoadbalancerRulePriority: !Ref MicroserviceNumber
         CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
+        OpenApiBucketName: !Ref LambdasBucketName
+        OpenApiBucketKey: !Sub ${BucketBasePath}/docs/openapi/aws/api-bfhd-BO-aws.yaml
+
+  BfhdWafAcl:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/api-gw-waf-acl.yaml"
+      Parameters:
+        WAFName: !Sub "${ProjectName}-bfhd"
+        IntendedUsage: BO
+        APIGatewayARNs: !GetAtt BfhdAPI.Outputs.APIGatewayARN
+        Limit: !Ref BfhdWafRequestLimit
+        EnhancedWebSecurityEnabled: !Ref EnhancedWebSecurityEnabled
+        # AllowedCidrs: !Ref IOBackendCidrs
+
+  NotificationWrapperLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref NotificationWrapperLambdaName
+      Runtime: nodejs22.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/notificationWrapper.zip"
+      Role: !GetAtt NotificationWrapperLambdaRole.Arn
+      Timeout: !Ref NotificationWrapperLambdaTimeout
+      MemorySize: !Ref NotificationWrapperLambdaMemorySize
+      Environment:
+        Variables:
+          CORS_ALLOWED_DOMAINS: !Ref CorsAllowedDomains
+          APPLICATION_LOAD_BALANCER_DOMAIN: !Ref ApplicationLoadBalancerDomain
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt HelpdeskLambdaVpcSecurityGroup.GroupId
+        SubnetIds: !Ref SubnetsIds
+      TracingConfig:
+        Mode: Active
+
+  HelpdeskLambdaVpcSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub Security Group for ${ProjectName}-notificationWrapper Lambda function
+      VpcId: !Ref VpcId
+
+  NotificationWrapperLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-notificationWrapperLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  # Lambda access right
+  NotificationWrapperLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NotificationWrapperLambda
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*"
+
+
+  NotificationWrapperLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref NotificationWrapperLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
