@@ -67,9 +67,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: string
+                $ref: '#/components/schemas/BaseResponseDto'
         '400':
           description: Errors during the request validation
           content:
@@ -208,7 +206,7 @@ components:
           type: string
     BaseResponseDto:
       title: Success response from the server
-      type: string
+      type: object
       required:
         - message
       properties:
