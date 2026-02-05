@@ -119,7 +119,7 @@ Resources:
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: !Sub "${BucketBasePath}/notificationWrapper.zip"
+        S3Key: !Sub "${BucketBasePath}/pn-notificationWrapper.zip"
       Role: !GetAtt NotificationWrapperLambdaRole.Arn
       Timeout: !Ref NotificationWrapperLambdaTimeout
       MemorySize: !Ref NotificationWrapperLambdaMemorySize
