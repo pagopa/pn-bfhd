@@ -88,7 +88,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/api-gw-expose-service-openapi.yaml"
       Parameters:
         MicroServiceUniqueName: !Sub "${ProjectName}-bfhd"
-        IntendedUsage: BO
+        IntendedUsage: BACKOFFICE
         DnsName: !Ref BoApiDnsName
         ProjectName: !Ref ProjectName
         ServiceApiPath: "bfhd"
@@ -105,7 +105,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/api-gw-waf-acl.yaml"
       Parameters:
         WAFName: !Sub "${ProjectName}-bfhd"
-        IntendedUsage: BO
+        IntendedUsage: BACKOFFICE
         APIGatewayARNs: !GetAtt BfhdAPI.Outputs.APIGatewayARN
         Limit: !Ref BfhdWafRequestLimit
         EnhancedWebSecurityEnabled: !Ref EnhancedWebSecurityEnabled
