@@ -1,45 +1,39 @@
 const axios = require('axios');
 
-async function handleEvent(event) {
+async function handleEvent(event, context) {
 
     try {
-        // Gestione flessibile del body
         const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
         const iun = body?.iun || body?.iuns?.[0] || event.iun;
     } catch (e) {
         console.log(e);
     }
 
+    // bisogna definire questo parametro su aws, nella lambda, come parametro di impostazione in base all ambiente.
+    //definirlo poi dentro microservice.yml e utilizzarlo qui
     const host = process.env.BFHD_API_HOST || 'https://api.bo.uat.notifichedigitali.it';
     const logPath = '/bfhd/logs/v1/notifications/info';
+    const path = "/notifications/sent/";
+    const IUN = event.pathParameters["iun"];
+    const url = `${process.env.PN_DELIVERY_URL}${path}${IUN}`;
 
    //Token deve essere preso dagli headers
     //const token = process.env.AUTH_TOKEN ? process.env.AUTH_TOKEN.replace('Bearer ', '') : '';
 
     try {
-        const apiResponse = await axios.post(`${host}${logPath}`,
+        const apiResponse = await axios.post(url,
         {
-            // Come richiesto dallo YAML: array di stringhe e data
             iuns: iun ? [iun] : [],
-            dateFrom: new Date().toISOString()
+            ticketNumber: "SNDA-1000"
         },
-        {
-        //da verificare
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                'x-pagopa-pn-uid': event.requestContext?.authorizer?.principalId || process.env.PN_UID,
-                'x-pagopa-pn-cx-type': 'BO'
-            },
-            timeout: 15000 // Alzato leggermente per UAT
-        });
+        {});
 
         return {
             statusCode: 200,
             body: JSON.stringify(apiResponse.data)
         };
+
     } catch (error) {
-        // Log dettagliato per il debug in UAT
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
 

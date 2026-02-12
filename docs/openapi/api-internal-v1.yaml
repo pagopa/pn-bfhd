@@ -138,8 +138,8 @@ components:
     NotificationInfoRequestDto:
       type: object
       required:
-        - ticketNumber
-        - iun
+        - ticketsNumber
+        - iuns
       properties:
         ticketsNumber:
           type: array

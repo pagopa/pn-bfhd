@@ -35,6 +35,8 @@ Parameters:
     Type: String
     Description: 'Base URL of the load balancer where the service is going to be reachable'
 
+  #inserire paramentro env su aws per questa lambda
+
   NetworkLoadBalancerLink:
     Type: String
     Description: 'network load balancer link for API-GW'
@@ -127,6 +129,9 @@ Resources:
         Variables:
           CORS_ALLOWED_DOMAINS: !Ref CorsAllowedDomains
           APPLICATION_LOAD_BALANCER_DOMAIN: !Ref ApplicationLoadBalancerDomain
+          #inserendo questo parametro posso chiamare delivery senza riautenticarmi lato codice, perché sono autenticato giá su loadbalancer
+          PN_DELIVERY_URL: !Sub "http://${ApplicationLoadBalancerDomain}:8080/delivery/v2.8"
+          #inserire qui
       VpcConfig:
         SecurityGroupIds:
           - !GetAtt HelpdeskLambdaVpcSecurityGroup.GroupId
