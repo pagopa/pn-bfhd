@@ -16,7 +16,7 @@ async function handleEvent(event, context) {
         headers["x-pagopa-pn-uid"] = event.requestContext.authorizer["uid"];
     }
     try {
-        const apiResponse = await axios.get(url,
+        const apiResponse = await axios.post(url,
             {
                 headers: {
                     "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-id"],
