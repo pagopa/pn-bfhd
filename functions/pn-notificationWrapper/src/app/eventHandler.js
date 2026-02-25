@@ -2,7 +2,6 @@ const axios = require('axios');
 
 async function handleEvent(event, context) {
 
-
     const path = "/delivery/v2.8/notifications/sent/";
     const iun = event.pathParameters["iun"];
     const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
@@ -25,7 +24,7 @@ async function handleEvent(event, context) {
                     "x-pagopa-pn-cx-id": headers["x-pagopa-pn-uid"]
                 }
             },
-            {});
+            event.body);
 
         return {
             statusCode: 200,
