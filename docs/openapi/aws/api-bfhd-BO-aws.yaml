@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: >-
     ${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}
-  version: NJ5fr8gqzM4IBOqaRTWLGdFMoHpnB3olSxEWH3UqVt8=
+  version: 1jEuy8b5EZL3+okf13mh9Q08n9JHbXygV9AvYTOG/MA=
 servers:
   - url: https://${stageVariables.DnsName}/{basePath}
     variables:
@@ -30,6 +30,8 @@ paths:
             type: string
             pattern: ^[A-Za-z]*$
           required: true
+      security:
+        - pn-auth-fleet_backofficeAuthorizer: []
       operationId: notificationInfoLogs
       x-pagopa-lambda-name: pn-notificationWrapper
       x-pagopa-lambda-account: core
@@ -71,6 +73,7 @@ paths:
           integration.request.header.x-pagopa-pn-cx-type: context.authorizer.cx_type
           integration.request.header.x-pagopa-pn-cx-groups: context.authorizer.cx_groups
           integration.request.header.x-pagopa-pn-src-ch-details: context.authorizer.sourceChannelDetails
+          integration.request.header.x-pagopa-pn-src-ch: '''BACKOFFICE'''
         passthroughBehavior: when_no_match
         contentHandling: CONVERT_TO_TEXT
         timeoutInMillis: 29000
@@ -378,6 +381,17 @@ components:
         - NOTIFICATION_VISUALIZATION
         - NOTIFICATION_WORKFLOW
   responses: {}
+  securitySchemes:
+    pn-auth-fleet_backofficeAuthorizer:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: custom
+      x-amazon-apigateway-authorizer:
+        authorizerUri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-backofficeAuthorizerLambda/invocations
+        authorizerResultTtlInSeconds: 300
+        type: token
 tags:
   - name: persons
     description: Operations about a person
