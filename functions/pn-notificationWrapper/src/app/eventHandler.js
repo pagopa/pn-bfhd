@@ -19,9 +19,9 @@ async function handleEvent(event, context) {
         const apiResponse = await axios.post(url,
             {
                 headers: {
-                    "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-id"],
+                    "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-uid"],
                     "x-pagopa-pn-cx-type": headers["x-pagopa-pn-cx-type"],
-                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-uid"]
+                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-id"]
                 }
             },
             event.body);
