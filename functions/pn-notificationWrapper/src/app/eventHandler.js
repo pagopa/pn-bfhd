@@ -1,6 +1,37 @@
 const axios = require('axios');
 
+function getCommonHeaders(allowedOrigin) {
+    return {
+        "Access-Control-Allow-Origin": allowedOrigin,
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Methods": "POST",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    };
+}
+
+function createResponse(
+    statusCode,
+    allowedOrigin,
+    body = "",
+    additionalHeaders = {}
+) {
+    return {
+        statusCode,
+        headers: {
+            ...getCommonHeaders(allowedOrigin),
+            ...additionalHeaders,
+        },
+        body: typeof body === "string" ? body : JSON.stringify(body),
+    };
+}
+
 async function handleEvent(event, context) {
+
+
+    // Gestione OPTIONS
+    if (event.httpMethod === "OPTIONS") {
+        return createResponse(200, allowedOrigin, "");
+    }
 
     const path = "/delivery/v2.8/notifications/sent/";
     const iun = event.pathParameters["iun"];
@@ -25,12 +56,7 @@ async function handleEvent(event, context) {
                 }
             },
             event.body);
-
-        return {
-            statusCode: 200,
-            body: JSON.stringify(apiResponse.data)
-        };
-
+        return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data));
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
