@@ -28,16 +28,7 @@ function createResponse(
 async function handleEvent(event, context) {
     const allowedOrigin = event.headers.origin;
 
-    // Verifica origine trusted
-    if (!utils.isTrustedOrigin(allowedOrigin, process.env.CORS_ALLOWED_DOMAINS)) {
-        const message = "Untrusted origin " + allowedOrigin;
-        console.info("Event: ", utils.removeSensibleInfoFromEvent(event));
-        return createResponse(
-            403,
-            allowedOrigin,
-            utils.generateProblem(403, message)
-        );
-    }
+
     // Gestione OPTIONS
     if (event.httpMethod === "OPTIONS") {
         return createResponse(200, allowedOrigin, "");
