@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: >-
     ${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}
-  version: 1jEuy8b5EZL3+okf13mh9Q08n9JHbXygV9AvYTOG/MA=
+  version: QrNGEZrxl6ZcRCLTZAf5ASaWwORD9cDhy9r4dw7m6BE=
 servers:
   - url: https://${stageVariables.DnsName}/{basePath}
     variables:
@@ -74,6 +74,17 @@ paths:
           integration.request.header.x-pagopa-pn-cx-groups: context.authorizer.cx_groups
           integration.request.header.x-pagopa-pn-src-ch-details: context.authorizer.sourceChannelDetails
           integration.request.header.x-pagopa-pn-src-ch: '''BACKOFFICE'''
+        passthroughBehavior: when_no_match
+        contentHandling: CONVERT_TO_TEXT
+        timeoutInMillis: 29000
+        type: aws_proxy
+    options:
+      operationId: Options for /logs/v1/notifications/info API CORS
+      x-amazon-apigateway-integration:
+        uri: >-
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:pn-notificationWrapper/invocations
+        httpMethod: POST
+        requestParameters: {}
         passthroughBehavior: when_no_match
         contentHandling: CONVERT_TO_TEXT
         timeoutInMillis: 29000
