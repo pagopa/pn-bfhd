@@ -73,7 +73,7 @@ async function handleEvent(event, context) {
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
 
-        return createResponse(error.status, allowedOrigin, errorData, requestHeaders);
+        return createResponse(error.status, allowedOrigin, `errore personalizzato ${error.response}`, requestHeaders);
     }
 }
 
