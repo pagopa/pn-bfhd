@@ -3,7 +3,17 @@ const axios = require('axios');
 function getCommonHeaders(allowedOrigin) {
     return {
         "Access-Control-Allow-Origin": allowedOrigin || "*",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,x-pagopa-pn-uid,x-pagopa-pn-cx-type,x-pagopa-pn-cx-id",
+        "Access-Control-Allow-Headers": [
+            "Content-Type",
+            "Authorization",
+            "x-pagopa-pn-uid",
+            "x-pagopa-pn-cx-type",
+            "x-pagopa-pn-cx-id",
+            "x-pagopa-pn-src-ch",        // aggiunto
+            "x-pagopa-pn-src-ch-details", // aggiunto
+            "x-amzn-trace-id",            // aggiunto - iniettato da API GW
+            "x-api-key",                  // aggiunto
+        ].join(","),
         "Access-Control-Allow-Methods": "POST",
         "Access-Control-Allow-Credentials": "true",
         "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
@@ -55,7 +65,6 @@ async function handleEvent(event, context) {
                     "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-uid"],
                     "x-pagopa-pn-cx-type": headers["x-pagopa-pn-cx-type"],
                     "x-pagopa-pn-cx-id": headers["x-pagopa-pn-id"],
-                    "x-pagopa-pn-src-ch": "'BACKOFFICE'"
                 }
             },
         );
