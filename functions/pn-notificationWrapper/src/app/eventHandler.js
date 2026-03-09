@@ -50,7 +50,7 @@ async function handleEvent(event, context) {
 
     try {
         const apiResponse = await axios.post(
-            url, event.body,
+            url, event.body ? JSON.parse(event.body) : {},
             {
                 headers: {
                     "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-uid"],
