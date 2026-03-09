@@ -30,8 +30,15 @@ async function handleEvent(event, context) {
         return createResponse(200, allowedOrigin, "", requestHeaders);
     }
 
+    let body = {};
+    try {
+        body = event.body ? JSON.parse(event.body) : {};
+    } catch (e) {
+        return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
+    }
+
     const path = "/delivery/v2.8/notifications/sent/";
-    const iun = event.body?.iun;
+    const iun = body.iun
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
     const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
@@ -50,12 +57,7 @@ async function handleEvent(event, context) {
         headers["x-pagopa-pn-uid"] = event.requestContext.authorizer.uid;
     }
 
-    let body = {};
-    try {
-        body = event.body ? JSON.parse(event.body) : {};
-    } catch (e) {
-        return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
-    }
+
 
     try {
         const apiResponse = await axios.post(
