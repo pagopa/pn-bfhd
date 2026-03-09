@@ -2,9 +2,10 @@ const axios = require('axios');
 
 function getCommonHeaders(allowedOrigin) {
     return {
-        "Access-Control-Allow-Origin": allowedOrigin,
-        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+        "Access-Control-Allow-Origin": allowedOrigin || "*",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,x-pagopa-pn-uid,x-pagopa-pn-cx-type,x-pagopa-pn-cx-id",
         "Access-Control-Allow-Methods": "POST",
+        "Access-Control-Allow-Credentials": "true",
         "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
     };
 }
@@ -48,24 +49,22 @@ async function handleEvent(event, context) {
         headers["x-pagopa-pn-uid"] = event.requestContext.authorizer["uid"];
     }
     try {
-        const apiResponse = await axios.post(url,
+        const apiResponse = await axios.post(url, event.body,
             {
                 headers: {
                     "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-uid"],
                     "x-pagopa-pn-cx-type": headers["x-pagopa-pn-cx-type"],
-                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-id"]
+                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-id"],
+                    "x-pagopa-pn-src-ch": "'BACKOFFICE'"
                 }
             },
-            event.body);
+        );
         return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data));
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
+        return createResponse(error.response?.status || 500, allowedOrigin, JSON.stringify(errorData))
 
-        return {
-            statusCode: error.response?.status || 500,
-            body: JSON.stringify(errorData)
-        };
     }
 }
 
