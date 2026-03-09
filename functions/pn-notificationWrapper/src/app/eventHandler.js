@@ -32,6 +32,7 @@ async function handleEvent(event) {
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
+    console.log('event :>> ', event);
     const iun = event.pathParameters["iun"];
     if (!iun) {
         return createResponse(
