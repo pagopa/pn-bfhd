@@ -31,7 +31,7 @@ async function handleEvent(event, context) {
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
-    const iun = event.pathParameters?.iun;
+    const iun = event.body?.iun;
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
     const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
