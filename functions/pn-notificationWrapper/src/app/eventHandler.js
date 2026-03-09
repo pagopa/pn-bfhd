@@ -47,18 +47,24 @@ async function handleEvent(event, context) {
     if (event.requestContext.authorizer["uid"]) {
         headers["x-pagopa-pn-uid"] = event.requestContext.authorizer["uid"];
     }
+    let body = {};
+    try {
+        body = event.body ? JSON.parse(event.body) : {};
+    } catch (e) {
+        return createResponse(400, allowedOrigin, { error: "Invalid JSON body" });
+    }
 
     try {
         const apiResponse = await axios.post(
-            url, event.body ? JSON.parse(event.body) : {},
+            url,
+            body,  // <--- body è ora un oggetto JSON
             {
                 headers: {
-                    "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-uid"],
+                    "x-pagopa-pn-uid": headers["x-pagopa-pn-uid"],
                     "x-pagopa-pn-cx-type": headers["x-pagopa-pn-cx-type"],
-                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-id"]
+                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-cx-id"]
                 }
-            },
-
+            }
         );
 
         return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data), requestHeaders);
