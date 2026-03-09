@@ -1,36 +1,33 @@
 const axios = require('axios');
 
-function getCommonHeaders(allowedOrigin) {
+function getCommonHeaders(origin, requestHeaders) {
     return {
-        "Access-Control-Allow-Origin": allowedOrigin,
-        "Access-Control-Allow-Headers": "Content-Type,Authorization,x-pagopa-pn-cx-type,x-pagopa-pn-uid,x-pagopa-pn-cx-id",
+        "Access-Control-Allow-Origin": origin || "*",
+        "Access-Control-Allow-Headers":
+            requestHeaders ||
+            "Content-Type,Authorization,x-pagopa-pn-cx-type,x-pagopa-pn-uid,x-pagopa-pn-cx-id",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "Access-Control-Allow-Credentials": "true",
+        "Strict-Transport-Security":
+            "max-age=31536000; includeSubDomains; preload",
     };
 }
 
-function createResponse(
-    statusCode,
-    allowedOrigin,
-    body = "",
-    additionalHeaders = {}
-) {
+function createResponse(statusCode, origin, body = "", requestHeaders) {
     return {
-        statusCode,
-        headers: {
-            ...getCommonHeaders(allowedOrigin),
-            ...additionalHeaders,
-        },
+        statusCode: statusCode,
+        headers: getCommonHeaders(origin, requestHeaders),
         body: typeof body === "string" ? body : JSON.stringify(body),
     };
 }
 
 async function handleEvent(event, context) {
     const allowedOrigin = event.headers.origin;
+    const requestHeaders =
+        event.headers?.["access-control-request-headers"] || "";
 
-    // Gestione OPTIONS (preflight CORS)
     if (event.httpMethod === "OPTIONS") {
-        return createResponse(200, allowedOrigin, "");
+        return createResponse(200, origin, "", requestHeaders);
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
@@ -64,16 +61,13 @@ async function handleEvent(event, context) {
 
         );
 
-        return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data));
+        return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data), requestHeaders);
 
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
 
-        return {
-            statusCode: error.response?.status || 500,
-            body: JSON.stringify(errorData)
-        };
+        return createResponse(error.status, origin, errorData, requestHeaders);
     }
 }
 
