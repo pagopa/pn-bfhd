@@ -22,7 +22,7 @@ function createResponse(statusCode, origin, body = "", requestHeaders) {
 }
 
 async function handleEvent(event, context) {
-    const allowedOrigin = event.headers.origin;
+    const allowedOrigin = event.headers?.origin || "*";
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
 
@@ -31,33 +31,36 @@ async function handleEvent(event, context) {
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
-    const iun = event.pathParameters["iun"];
+    const iun = event.pathParameters?.iun;
+    if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
+
     const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
 
-    const headers = JSON.parse(JSON.stringify(event["headers"]));
+    const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
-    if (event.requestContext.authorizer["cx_id"]) {
-        headers["x-pagopa-pn-cx-id"] = event.requestContext.authorizer["cx_id"];
+    if (event.requestContext?.authorizer?.cx_id) {
+        headers["x-pagopa-pn-cx-id"] = event.requestContext.authorizer.cx_id;
     }
 
-    if (event.requestContext.authorizer["cx_type"]) {
-        headers["x-pagopa-pn-cx-type"] = event.requestContext.authorizer["cx_type"];
+    if (event.requestContext?.authorizer?.cx_type) {
+        headers["x-pagopa-pn-cx-type"] = event.requestContext.authorizer.cx_type;
     }
 
-    if (event.requestContext.authorizer["uid"]) {
-        headers["x-pagopa-pn-uid"] = event.requestContext.authorizer["uid"];
+    if (event.requestContext?.authorizer?.uid) {
+        headers["x-pagopa-pn-uid"] = event.requestContext.authorizer.uid;
     }
+
     let body = {};
     try {
         body = event.body ? JSON.parse(event.body) : {};
     } catch (e) {
-        return createResponse(400, allowedOrigin, { error: "Invalid JSON body" });
+        return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
     }
 
     try {
         const apiResponse = await axios.post(
             url,
-            body,  // <--- body è ora un oggetto JSON
+            body,
             {
                 headers: {
                     "x-pagopa-pn-uid": headers["x-pagopa-pn-uid"],
@@ -67,13 +70,13 @@ async function handleEvent(event, context) {
             }
         );
 
-        return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data), requestHeaders);
+        return createResponse(200, allowedOrigin, apiResponse.data, requestHeaders);
 
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
 
-        return createResponse(error.status, allowedOrigin, `errore personalizzato ${error.response}`, requestHeaders);
+        return createResponse(error.response?.status || 500, allowedOrigin, errorData, requestHeaders);
     }
 }
 
