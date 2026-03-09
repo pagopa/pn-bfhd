@@ -32,8 +32,7 @@ async function handleEvent(event) {
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
-    const iun = event.pathParameters?.iun;
-
+    const iun = event.pathParameters["iun"];
     if (!iun) {
         return createResponse(
             400,
@@ -61,20 +60,9 @@ async function handleEvent(event) {
         forwardHeaders["x-pagopa-pn-uid"] = authorizer.uid;
     }
 
-    let body = {};
-
     try {
-        body = event.body ? JSON.parse(event.body) : {};
-    } catch (e) {
-        return createResponse(
-            400,
-            origin,
-            { error: "Invalid JSON body" },
-            requestHeaders
-        );
-    }
+        const body = event.body ? JSON.parse(event.body) : {};
 
-    try {
         const apiResponse = await axios.post(url, body, {
             headers: forwardHeaders,
             timeout: 10000,
