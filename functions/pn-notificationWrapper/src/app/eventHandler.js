@@ -1,79 +1,100 @@
-const axios = require('axios');
+const axios = require("axios");
 
-function getCommonHeaders(allowedOrigin) {
+function getCommonHeaders(origin, requestHeaders) {
     return {
-        "Access-Control-Allow-Origin": allowedOrigin || "*",
-        "Access-Control-Allow-Headers": [
-            "Content-Type",
-            "Authorization",
-            "x-pagopa-pn-uid",
-            "x-pagopa-pn-cx-type",
-            "x-pagopa-pn-cx-id",
-            "x-pagopa-pn-src-ch",        // aggiunto
-            "x-pagopa-pn-src-ch-details", // aggiunto
-            "x-amzn-trace-id",            // aggiunto - iniettato da API GW
-            "x-api-key",                  // aggiunto
-        ].join(","),
-        "Access-Control-Allow-Methods": "POST",
+        "Access-Control-Allow-Origin": origin || "*",
+        "Access-Control-Allow-Headers":
+            requestHeaders ||
+            "Content-Type,Authorization,x-pagopa-pn-cx-type,x-pagopa-pn-uid,x-pagopa-pn-cx-id",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Credentials": "true",
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+        "Strict-Transport-Security":
+            "max-age=31536000; includeSubDomains; preload",
     };
 }
 
-function createResponse(
-    statusCode,
-    allowedOrigin,
-    body = "",
-    additionalHeaders = {}
-) {
+function createResponse(statusCode, origin, body = "", requestHeaders) {
     return {
-        statusCode,
-        headers: {
-            ...getCommonHeaders(allowedOrigin),
-            ...additionalHeaders,
-        },
+        statusCode: statusCode,
+        headers: getCommonHeaders(origin, requestHeaders),
         body: typeof body === "string" ? body : JSON.stringify(body),
     };
 }
 
-async function handleEvent(event, context) {
-    const allowedOrigin = event.headers.origin;
+async function handleEvent(event) {
+    const origin = event.headers?.origin || "*";
+    const requestHeaders =
+        event.headers?.["access-control-request-headers"] || "";
 
-
-    // Gestione OPTIONS
+    // Preflight CORS
     if (event.httpMethod === "OPTIONS") {
-        return createResponse(200, allowedOrigin, "");
+        return createResponse(200, origin, "", requestHeaders);
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
-    const iun = event.pathParameters["iun"];
-    const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
-    const headers = JSON.parse(JSON.stringify(event["headers"]));
-    if (event.requestContext.authorizer["cx_id"]) {
-        headers["x-pagopa-pn-cx-id"] = event.requestContext.authorizer["cx_id"];
-    }
-    if (event.requestContext.authorizer["cx_type"]) {
-        headers["x-pagopa-pn-cx-type"] = event.requestContext.authorizer["cx_type"];
-    }
-    if (event.requestContext.authorizer["uid"]) {
-        headers["x-pagopa-pn-uid"] = event.requestContext.authorizer["uid"];
-    }
-    try {
-        const apiResponse = await axios.post(url, event.body,
-            {
-                headers: {
-                    "x-pagopa-pn-uid": headers["x-pagopa-pn-cx-uid"],
-                    "x-pagopa-pn-cx-type": headers["x-pagopa-pn-cx-type"],
-                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-id"],
-                }
-            },
-        );
-        return createResponse(200, allowedOrigin, JSON.stringify(apiResponse.data));
-    } catch (error) {
-        const errorData = error.response?.data || { error: error.message };
-        console.error("Errore BFHD:", JSON.stringify(errorData));
-        return createResponse(error.response?.status || 500, allowedOrigin, JSON.stringify(errorData))
+    const iun = event.pathParameters?.iun;
 
+    if (!iun) {
+        return createResponse(
+            400,
+            origin,
+            { error: "Missing iun parameter" },
+            requestHeaders
+        );
+    }
+
+    const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
+
+    const authorizer = event.requestContext?.authorizer || {};
+
+    const forwardHeaders = {};
+
+    if (authorizer.cx_id) {
+        forwardHeaders["x-pagopa-pn-cx-id"] = authorizer.cx_id;
+    }
+
+    if (authorizer.cx_type) {
+        forwardHeaders["x-pagopa-pn-cx-type"] = authorizer.cx_type;
+    }
+
+    if (authorizer.uid) {
+        forwardHeaders["x-pagopa-pn-uid"] = authorizer.uid;
+    }
+
+    let body = {};
+
+    try {
+        body = event.body ? JSON.parse(event.body) : {};
+    } catch (e) {
+        return createResponse(
+            400,
+            origin,
+            { error: "Invalid JSON body" },
+            requestHeaders
+        );
+    }
+
+    try {
+        const apiResponse = await axios.post(url, body, {
+            headers: forwardHeaders,
+            timeout: 10000,
+        });
+
+        return createResponse(
+            200,
+            origin,
+            apiResponse.data,
+            requestHeaders
+        );
+    } catch (error) {
+        const status = error.response?.status || 500;
+        const errorData = error.response?.data || {
+            error: error.message,
+        };
+
+        console.error("Errore BFHD:", JSON.stringify(errorData));
+
+        return createResponse(status, origin, errorData, requestHeaders);
     }
 }
 
