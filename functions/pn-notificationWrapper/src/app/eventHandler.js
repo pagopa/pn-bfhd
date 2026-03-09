@@ -27,7 +27,7 @@ async function handleEvent(event, context) {
         event.headers?.["access-control-request-headers"] || "";
 
     if (event.httpMethod === "OPTIONS") {
-        return createResponse(200, origin, "", requestHeaders);
+        return createResponse(200, allowedOrigin, "", requestHeaders);
     }
 
     const path = "/delivery/v2.8/notifications/sent/";
@@ -67,7 +67,7 @@ async function handleEvent(event, context) {
         const errorData = error.response?.data || { error: error.message };
         console.error("Errore BFHD:", JSON.stringify(errorData));
 
-        return createResponse(error.status, origin, errorData, requestHeaders);
+        return createResponse(error.status, allowedOrigin, errorData, requestHeaders);
     }
 }
 
