@@ -45,16 +45,16 @@ async function handleEvent(event, context) {
 
     const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
-    if (event.requestContext?.authorizer?.cx_id) {
-        headers["x-pagopa-pn-cx-id"] = event.requestContext.authorizer.cx_id;
+    if (context?.authorizer?.cx_id) {
+        headers["x-pagopa-pn-cx-id"] = context.authorizer.cx_id;
     }
 
-    if (event.requestContext?.authorizer?.cx_type) {
-        headers["x-pagopa-pn-cx-type"] = event.requestContext.authorizer.cx_type;
+    if (context.authorizer.cx_type) {
+        headers["x-pagopa-pn-cx-type"] = context.authorizer.cx_type;
     }
 
-    if (event.requestContext?.authorizer?.uid) {
-        headers["x-pagopa-pn-uid"] = event.requestContext.authorizer.uid;
+    if (context?.authorizer?.uid) {
+        headers["x-pagopa-pn-uid"] = context.authorizer.uid;
     }
 
 

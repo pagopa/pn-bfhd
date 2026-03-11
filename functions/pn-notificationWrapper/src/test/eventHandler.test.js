@@ -8,13 +8,6 @@ describe('EventHandler Tests', () => {
 
             const mockEvent = {
                 pathParameters: { iun: "UDGN-JWMA-NEWQ-202602-Y-1" },
-                requestContext: {
-                    authorizer: {
-                        cx_id: 'user123',
-                        cx_type: 'PA',
-                        uid: '1234'
-                    }
-                },
                 body: JSON.stringify({ key: 'value' }),
                 headers: {
                     "x-pagopa-pn-cx-id": "",
@@ -23,7 +16,14 @@ describe('EventHandler Tests', () => {
                 }
 
             };
-            const response = await handleEvent(mockEvent);
+            const mockContext = {
+                authorizer: {
+                    cx_id: 'user123',
+                    cx_type: 'PA',
+                    uid: '1234'
+                }
+            }
+            const response = await handleEvent(mockEvent, mockContext);
             expect(response).to.have.property('statusCode');
             expect(response).to.have.property('body');
             //const responseBody = JSON.parse(response.body);
