@@ -49,7 +49,7 @@ async function handleEvent(event, context) {
         headers["x-pagopa-pn-cx-id"] = context.authorizer.cx_id;
     }
 
-    if (context.authorizer.cx_type) {
+    if (context?.authorizer?.cx_type) {
         headers["x-pagopa-pn-cx-type"] = context.authorizer.cx_type;
     }
 
@@ -62,7 +62,6 @@ async function handleEvent(event, context) {
     try {
         const apiResponse = await axios.get(
             url,
-            body,
             {
                 headers: {
                     "x-pagopa-pn-uid": headers["x-pagopa-pn-uid"],
