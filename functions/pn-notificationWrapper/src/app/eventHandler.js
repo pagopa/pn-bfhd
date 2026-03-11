@@ -60,7 +60,7 @@ async function handleEvent(event, context) {
 
 
     try {
-        const apiResponse = await axios.post(
+        const apiResponse = await axios.get(
             url,
             body,
             {
