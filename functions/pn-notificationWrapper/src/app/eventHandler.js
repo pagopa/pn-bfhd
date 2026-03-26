@@ -26,7 +26,7 @@ async function handleEvent(event, context) {
     const allowedOrigin = event.headers?.origin || "*";
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
-    auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
+    // auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
     const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
     if (event.httpMethod === "OPTIONS") {
@@ -41,12 +41,12 @@ async function handleEvent(event, context) {
         return createResponse(200, allowedOrigin, decode, {});
 
     } catch (err) {
-        auditLog(
+        /* auditLog(
             `Error generating token ${err.message}`,
             "AUD_ACC_LOGIN",
             allowedOrigin,
             "KO"
-        ).warn("error");
+        ).warn("error"); */
         const errorData = err.response?.data || { error: err.message };
         return createResponse(err.response?.status || 500, allowedOrigin, errorData, requestHeaders);
     }
