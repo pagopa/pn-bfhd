@@ -1,4 +1,5 @@
 const axios = require('axios');
+const jwtDecode = require('jwt-decode')
 
 function getCommonHeaders(origin, requestHeaders) {
     return {
@@ -25,11 +26,43 @@ async function handleEvent(event, context) {
     const allowedOrigin = event.headers?.origin || "*";
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
+    auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
+    const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
     if (event.httpMethod === "OPTIONS") {
+
         return createResponse(200, allowedOrigin, "", requestHeaders);
     }
 
+    let jwt;
+    try {
+        jwt = event.headers.Authorization.replace("Bearer ", "");
+        const decode = jwtDecode(jwt)
+        return createResponse(200, allowedOrigin, decode, {});
+
+    } catch (err) {
+        auditLog(
+            `Error generating token ${err.message}`,
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "KO"
+        ).warn("error");
+        const errorData = err.response?.data || { error: err.message };
+        return createResponse(err.response?.status || 500, allowedOrigin, errorData, requestHeaders);
+    }
+
+    /*  auditLog(
+         `Token successful generated with id ${enrichedToken.jti}`,
+         "AUD_ACC_LOGIN",
+         allowedOrigin,
+         "OK",
+         cx_type,
+         cx_id,
+         cx_role,
+         uid,
+         enrichedToken.jti
+     ).info("success");
+  */
     let body = {};
     try {
         body = event.body ? JSON.parse(event.body) : {};
@@ -37,13 +70,12 @@ async function handleEvent(event, context) {
         return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
     }
 
-    const path = "/delivery/v2.8/notifications/sent/";
+    const path = "/delivery-private/notifications/";
     const iun = body.iun
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
     const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
 
-    const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
     if (context?.authorizer?.cx_id) {
         headers["x-pagopa-pn-cx-id"] = context.authorizer.cx_id;
@@ -57,8 +89,6 @@ async function handleEvent(event, context) {
         headers["x-pagopa-pn-uid"] = context.authorizer.uid;
     }
 
-
-
     try {
         const apiResponse = await axios.get(
             url,
@@ -70,12 +100,10 @@ async function handleEvent(event, context) {
                 }
             }
         );
-
         return createResponse(200, allowedOrigin, apiResponse.data, requestHeaders);
 
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
-        console.error("Errore BFHD:", JSON.stringify(errorData));
 
         return createResponse(error.response?.status || 500, allowedOrigin, errorData, requestHeaders);
     }
