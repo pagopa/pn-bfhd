@@ -99,6 +99,7 @@ async function handleEvent(event, context) {
         const apiResponseTimeline = await axios.get(
             urlTimeline,
             {
+
                 headers: {
                     "x-pagopa-pn-uid": uid,
                     "x-pagopa-pn-cx-type": cx_type,
@@ -106,7 +107,8 @@ async function handleEvent(event, context) {
                 }
             }
         );
-        return createResponse(200, allowedOrigin, { delivery: apiResponseDelivery.data, timleine: apiResponseTimeline.data }, requestHeaders);
+        const response = { ...apiResponseDelivery.data, timeline: apiResponseTimeline.data }
+        return createResponse(200, allowedOrigin, response, requestHeaders);
 
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
