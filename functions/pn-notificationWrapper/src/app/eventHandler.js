@@ -1,5 +1,6 @@
 const axios = require('axios');
 const jsonwebtoken = require('jsonwebtoken');
+const { auditLog } = require("./log.js");
 
 function getCommonHeaders(origin, requestHeaders) {
     return {
@@ -26,8 +27,8 @@ async function handleEvent(event, context) {
     const allowedOrigin = event.headers?.origin || "*";
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
-    // auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
-    const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
+    auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
+    // const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
     if (event.httpMethod === "OPTIONS") {
 
@@ -35,34 +36,40 @@ async function handleEvent(event, context) {
     }
 
     let jwt;
+    let uid;
+    let cx_id;
+    const cx_type = "BO";
+    let decode;
+
     try {
         jwt = event.headers.Authorization.replace("Bearer ", "");
-        const decode = jsonwebtoken.decode(jwt)
-        return createResponse(200, allowedOrigin, decode, {});
-
+        decode = jsonwebtoken.decode(jwt);
+        uid = decode["cognito:username"]
+        cx_id = `BO-${uid}`
+        auditLog(
+            `Token successful decode`,
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "OK",
+            cx_type,
+            cx_id,
+            "",
+            uid,
+            ""
+        ).info("success");
     } catch (err) {
-        /* auditLog(
-            `Error generating token ${err.message}`,
+        auditLog(
+            `Error decode token ${err.message}`,
             "AUD_ACC_LOGIN",
             allowedOrigin,
             "KO"
-        ).warn("error"); */
+        ).warn("error");
         const errorData = err.response?.data || { error: err.message };
         return createResponse(err.response?.status || 500, allowedOrigin, errorData, requestHeaders);
     }
 
-    /*  auditLog(
-         `Token successful generated with id ${enrichedToken.jti}`,
-         "AUD_ACC_LOGIN",
-         allowedOrigin,
-         "OK",
-         cx_type,
-         cx_id,
-         cx_role,
-         uid,
-         enrichedToken.jti
-     ).info("success");
-  */
+
+
     let body = {};
     try {
         body = event.body ? JSON.parse(event.body) : {};
@@ -70,37 +77,36 @@ async function handleEvent(event, context) {
         return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
     }
 
-    const path = "/delivery-private/notifications/";
+    const pathDelivery = "/delivery-private/notifications/";
+    const pathTimeline = "/timeline-service-private/timelines/"
     const iun = body.iun
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
-    const url = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${path}${iun}`;
-
-
-    if (context?.authorizer?.cx_id) {
-        headers["x-pagopa-pn-cx-id"] = context.authorizer.cx_id;
-    }
-
-    if (context?.authorizer?.cx_type) {
-        headers["x-pagopa-pn-cx-type"] = context.authorizer.cx_type;
-    }
-
-    if (context?.authorizer?.uid) {
-        headers["x-pagopa-pn-uid"] = context.authorizer.uid;
-    }
+    const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
+    const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}/elements`
 
     try {
-        const apiResponse = await axios.get(
-            url,
+        const apiResponseDelivery = await axios.get(
+            urlDelivery,
             {
                 headers: {
-                    "x-pagopa-pn-uid": headers["x-pagopa-pn-uid"],
-                    "x-pagopa-pn-cx-type": headers["x-pagopa-pn-cx-type"],
-                    "x-pagopa-pn-cx-id": headers["x-pagopa-pn-cx-id"]
+                    "x-pagopa-pn-uid": uid,
+                    "x-pagopa-pn-cx-type": cx_type,
+                    "x-pagopa-pn-cx-id": cx_id
                 }
             }
         );
-        return createResponse(200, allowedOrigin, apiResponse.data, requestHeaders);
+        const apiResponseTimeline = await axios.get(
+            urlTimeline,
+            {
+                headers: {
+                    "x-pagopa-pn-uid": uid,
+                    "x-pagopa-pn-cx-type": cx_type,
+                    "x-pagopa-pn-cx-id": cx_id
+                }
+            }
+        );
+        return createResponse(200, allowedOrigin, { delivery: apiResponseDelivery.data, timleine: apiResponseTimeline.data }, requestHeaders);
 
     } catch (error) {
         const errorData = error.response?.data || { error: error.message };
