@@ -1,5 +1,5 @@
 const axios = require('axios');
-const jwtDecode = require('jwt-decode')
+const jsonwebtoken = require('jsonwebtoken');
 
 function getCommonHeaders(origin, requestHeaders) {
     return {
@@ -37,7 +37,7 @@ async function handleEvent(event, context) {
     let jwt;
     try {
         jwt = event.headers.Authorization.replace("Bearer ", "");
-        const decode = jwtDecode(jwt)
+        const decode = jsonwebtoken.decode(jwt)
         return createResponse(200, allowedOrigin, decode, {});
 
     } catch (err) {

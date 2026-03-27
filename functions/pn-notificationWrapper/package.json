@@ -23,7 +23,7 @@
     "axios": "^1.13.5",
     "axios-retry": "^4.5.0",
     "bunyan": "^1.8.15",
-    "jwt-decode": "^4.0.0"
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "chai": "^4.5.0",
