@@ -74,16 +74,23 @@ async function handleEvent(event, context) {
     try {
         body = event.body ? JSON.parse(event.body) : {};
     } catch (e) {
+        auditLog(
+            `Error take body ${e.message}`,
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "KO"
+        ).warn("error");
         return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
     }
 
     const pathDelivery = "/delivery-private/notifications/";
-    const pathTimeline = "/timeline-service-private/timelines/"
+    const pathTimeline = "/timeline-service-private/history/";
+    const pathSafeStorage = "/safe-storage/v1/files/";
     const iun = body.iun
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
     const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
-    const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}/elements`
+    const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}`
 
     try {
         const apiResponseDelivery = await axios.get(
@@ -96,6 +103,18 @@ async function handleEvent(event, context) {
                 }
             }
         );
+        auditLog(
+            `Get delivery success`,
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "OK",
+            cx_type,
+            cx_id,
+            "",
+            uid,
+            ""
+        ).info("success");
+        const createdAt = apiResponseDelivery.data?.sentAt
         const apiResponseTimeline = await axios.get(
             urlTimeline,
             {
@@ -104,13 +123,48 @@ async function handleEvent(event, context) {
                     "x-pagopa-pn-uid": uid,
                     "x-pagopa-pn-cx-type": cx_type,
                     "x-pagopa-pn-cx-id": cx_id
+                },
+                params: {
+                    numberOfRecipients: 0,
+                    createdAt: createdAt
                 }
             }
         );
-        const response = { ...apiResponseDelivery.data, timeline: apiResponseTimeline.data }
-        return createResponse(200, allowedOrigin, response, requestHeaders);
+        auditLog(
+            `Get timeline success`,
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "OK",
+            cx_type,
+            cx_id,
+            "",
+            uid,
+            ""
+        ).info("success");
+        const apiResponseSafeStorage = await Promise.all(
+            apiResponseDelivery.data.documents.map((element) => {
+                const fileKey = element.ref.key;
+                const urlSafeStorage = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathSafeStorage}${fileKey}`;
+                return axios.get(urlSafeStorage, {
+                    headers: {
+                        "x-pagopa-pn-uid": uid,
+                        "x-pagopa-pn-cx-type": cx_type,
+                        "x-pagopa-pn-cx-id": cx_id,
+                    },
+                });
+            })
+        );
+        const documents = apiResponseSafeStorage.map(res => res.data);
+        const response = { ...apiResponseDelivery.data, ...apiResponseTimeline.data }
+        return createResponse(200, allowedOrigin, documents, requestHeaders);
 
     } catch (error) {
+        auditLog(
+            `Error retrieve data ${error.message}`,
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "KO"
+        ).warn("error");
         const errorData = error.response?.data || { error: error.message };
 
         return createResponse(error.response?.status || 500, allowedOrigin, errorData, requestHeaders);
