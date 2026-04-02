@@ -26,6 +26,10 @@ Parameters:
   SubnetsIds:
     Type: List<AWS::EC2::Subnet::Id>
     Description: "subnets ids comma separated list. Where to deploy the microservice"
+     
+  SandboxSafeStorageBaseUrl:
+    Type: String
+    Description: 'Url to the SafeStorage microservice'
 
   VpcId:
     Type: String
@@ -100,6 +104,8 @@ Resources:
         CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         OpenApiBucketName: !Ref LambdasBucketName
         OpenApiBucketKey: !Sub ${BucketBasePath}/docs/openapi/aws/api-bfhd-BO-aws.yaml
+        SafeStorageSandbox: !Sub 'PN_BFHD_SAFESTORAGEBASEPATH=${SandboxSafeStorageBaseUrl}'
+
 
   BfhdWafAcl:
     Type: AWS::CloudFormation::Stack
@@ -130,7 +136,7 @@ Resources:
           CORS_ALLOWED_DOMAINS: !Ref CorsAllowedDomains
           APPLICATION_LOAD_BALANCER_DOMAIN: !Ref ApplicationLoadBalancerDomain
           #inserendo questo parametro posso chiamare delivery senza riautenticarmi lato codice, perché sono autenticato giá su loadbalancer
-          PN_DELIVERY_URL: !Sub "http://${ApplicationLoadBalancerDomain}:8080/delivery/v2.8"
+          SAFE-STORAGE: !Sub SafeStorageSandbox
           #inserire qui
       VpcConfig:
         SecurityGroupIds:
