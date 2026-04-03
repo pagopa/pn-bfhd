@@ -136,7 +136,7 @@ Resources:
           CORS_ALLOWED_DOMAINS: !Ref CorsAllowedDomains
           APPLICATION_LOAD_BALANCER_DOMAIN: !Ref ApplicationLoadBalancerDomain
           #inserendo questo parametro posso chiamare delivery senza riautenticarmi lato codice, perché sono autenticato giá su loadbalancer
-          SAFE-STORAGE: !Sub SafeStorageSandbox
+          SAFE_STORAGE: !Ref SandboxSafeStorageBaseUrl
           #inserire qui
       VpcConfig:
         SecurityGroupIds:
