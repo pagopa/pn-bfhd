@@ -104,8 +104,6 @@ Resources:
         CloudwatchLogKinesisStreamArn: !Ref LogsKinesisSourceStreamArn
         OpenApiBucketName: !Ref LambdasBucketName
         OpenApiBucketKey: !Sub ${BucketBasePath}/docs/openapi/aws/api-bfhd-BO-aws.yaml
-        SafeStorageSandbox: !Sub 'PN_BFHD_SAFESTORAGEBASEPATH=${SandboxSafeStorageBaseUrl}'
-
 
   BfhdWafAcl:
     Type: AWS::CloudFormation::Stack
