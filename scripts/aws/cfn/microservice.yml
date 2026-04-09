@@ -39,8 +39,6 @@ Parameters:
     Type: String
     Description: 'Base URL of the load balancer where the service is going to be reachable'
 
-  #inserire paramentro env su aws per questa lambda
-
   NetworkLoadBalancerLink:
     Type: String
     Description: 'network load balancer link for API-GW'

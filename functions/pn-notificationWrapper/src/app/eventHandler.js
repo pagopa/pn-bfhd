@@ -144,7 +144,7 @@ async function handleEvent(event, context) {
         const apiResponseSafeStorage = await Promise.all(
             apiResponseDelivery.data.documents.map((element) => {
                 const fileKey = element.ref.key;
-                const urlSafeStorage = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathSafeStorage}${fileKey}`;
+                const urlSafeStorage = `http://${process.env.SAFE_STORAGE}:8080${pathSafeStorage}${fileKey}`;
                 return axios.get(urlSafeStorage, {
                     headers: {
                         "x-pagopa-pn-uid": uid,
