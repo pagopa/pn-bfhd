@@ -85,13 +85,13 @@ async function handleEvent(event, context) {
 
     const pathDelivery = "/delivery-private/notifications/";
     const pathTimeline = "/timeline-service-private/history/";
-    const pathSafeStorage = "/safe-storage/v1/files/";
+    const pathSafeStorage = "safe-storage/v1/files/";
     const iun = body.iun
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
     const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
     const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}`
-
+    let s;
     try {
         const apiResponseDelivery = await axios.get(
             urlDelivery,
@@ -144,7 +144,8 @@ async function handleEvent(event, context) {
         const apiResponseSafeStorage = await Promise.all(
             apiResponseDelivery.data.documents.map((element) => {
                 const fileKey = element.ref.key;
-                const urlSafeStorage = `http://${process.env.SAFE_STORAGE}:8080${pathSafeStorage}${fileKey}`;
+                const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
+                s = urlSafeStorage
                 return axios.get(urlSafeStorage, {
                     headers: {
                         "x-api-key": "pn-bfhd_api_key",
@@ -166,7 +167,7 @@ async function handleEvent(event, context) {
         ).warn("error");
         const errorData = error.response?.data || { error: error.message };
 
-        return createResponse(error.response?.status || 500, allowedOrigin, errorData, requestHeaders);
+        return createResponse(error.response?.status || 500, allowedOrigin, s, requestHeaders);
     }
 }
 
