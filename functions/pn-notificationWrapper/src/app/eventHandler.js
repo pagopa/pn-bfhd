@@ -147,14 +147,13 @@ async function handleEvent(event, context) {
                 const urlSafeStorage = `http://${process.env.SAFE_STORAGE}:8080${pathSafeStorage}${fileKey}`;
                 return axios.get(urlSafeStorage, {
                     headers: {
-                        "x-pagopa-pn-uid": uid,
-                        "x-pagopa-pn-cx-type": cx_type,
-                        "x-pagopa-pn-cx-id": cx_id,
+                        "x-api-key": "pn-bfhd_api_key",
+                        "x-pagopa-safestorage-cx-id": "pn-bfhd",
                     },
                 });
             })
         );
-        const documents = apiResponseSafeStorage.map(res => res.data);
+        const documents = { response: apiResponseSafeStorage.map(res => res), path: process.env.SAFE_STORAGE };
         const response = { ...apiResponseDelivery.data, ...apiResponseTimeline.data }
         return createResponse(200, allowedOrigin, documents, requestHeaders);
 
