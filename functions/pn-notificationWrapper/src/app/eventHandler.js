@@ -91,7 +91,6 @@ async function handleEvent(event, context) {
 
     const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
     const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}`
-    let s;
     try {
         const apiResponseDelivery = await axios.get(
             urlDelivery,
@@ -154,9 +153,17 @@ async function handleEvent(event, context) {
                 });
             })
         );
-        const documents = { response: apiResponseSafeStorage.map(res => res), path: process.env.SAFE_STORAGE };
-        const response = { ...apiResponseDelivery.data, ...apiResponseTimeline.data }
-        return createResponse(200, allowedOrigin, documents, requestHeaders);
+        const safeStorageDocuments = apiResponseSafeStorage.map(res => res.data);
+
+        const response = {
+            ...apiResponseDelivery.data,
+            ...apiResponseTimeline.data,
+            documents: apiResponseDelivery.data.documents.map((doc, index) => ({
+                ...doc,
+                safeStorage: safeStorageDocuments[index]
+            }))
+        };
+        return createResponse(200, allowedOrigin, response, requestHeaders);
 
     } catch (error) {
         auditLog(
@@ -167,7 +174,7 @@ async function handleEvent(event, context) {
         ).warn("error");
         const errorData = error.response?.data || { error: error.message };
 
-        return createResponse(error.response?.status || 500, allowedOrigin, s, requestHeaders);
+        return createResponse(error.response?.status || 500, allowedOrigin, errorData, requestHeaders);
     }
 }
 
