@@ -1,5 +1,5 @@
 {
   "Parameters": {
-    "NotificationWrapperLambdaAllowedOrigin": "https://helpdesk.dev.notifichedigitali.it"
+    "NotificationWrapperLambdaAllowedOrigin": "helpdesk.dev.notifichedigitali.it"
   }
 }
