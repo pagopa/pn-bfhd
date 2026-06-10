@@ -83,6 +83,10 @@ Parameters:
     Description: 'Enable enhanced web security features in WAF'
     Default: "true"
 
+  NotificationWrapperLambdaAllowedOrigin:
+    Type: String
+    Description: 'Comma separated list of websites allowed to use SEND back-ends API'
+
 Resources:
 
  # lambda per lollipop playground
@@ -131,6 +135,7 @@ Resources:
         Variables:
           CORS_ALLOWED_DOMAINS: !Ref CorsAllowedDomains
           APPLICATION_LOAD_BALANCER_DOMAIN: !Ref ApplicationLoadBalancerDomain
+          NOTIFICATION_WRAPPER_ALLOWED_ORIGINS: !Ref NotificationWrapperLambdaAllowedOrigin
           #inserendo questo parametro posso chiamare delivery senza riautenticarmi lato codice, perché sono autenticato giá su loadbalancer
           SAFE_STORAGE: !Ref SandboxSafeStorageBaseUrl
           #inserire qui

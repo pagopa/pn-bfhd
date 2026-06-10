@@ -32,7 +32,7 @@ Parameters:
     Type: Number
     Default: 14
     Description: 'Number of days to retain logs in CloudWatch.'
-
+    
 Resources:
   NotificationWrapperLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
