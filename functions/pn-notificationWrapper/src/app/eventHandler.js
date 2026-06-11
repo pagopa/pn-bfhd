@@ -160,8 +160,6 @@ async function handleEvent(event, context) {
                 ...doc,
                 safeStorage: safeStorageDocuments[index]
             })),
-            originEnv: process.env.NOTIFICATION_WRAPPER_ALLOWED_ORIGINS,
-            originPassed: allowedOrigin
         };
         return createResponse(200, allowedOrigin, response, requestHeaders);
 
