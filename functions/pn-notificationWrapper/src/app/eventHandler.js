@@ -4,7 +4,7 @@ const { auditLog } = require("./log.js");
 
 function getCommonHeaders(origin, requestHeaders) {
     return {
-        "Access-Control-Allow-Origin": process.env.NOTIFICATION_WRAPPER_ALLOWED_ORIGINS || "*",
+        "Access-Control-Allow-Origin": origin || "*",
         "Access-Control-Allow-Headers":
             requestHeaders ||
             "Content-Type,Authorization,x-pagopa-pn-cx-type,x-pagopa-pn-uid,x-pagopa-pn-cx-id",
@@ -32,7 +32,7 @@ async function handleEvent(event, context) {
 
     if (event.httpMethod === "OPTIONS") {
 
-        return createResponse(200, allowedOrigin, "", requestHeaders);
+        return createResponse(200, process.env.NOTIFICATION_WRAPPER_ALLOWED_ORIGINS, "", requestHeaders);
     }
 
     let jwt;
