@@ -4,7 +4,7 @@ const { auditLog } = require("./log.js");
 
 function getCommonHeaders(origin, requestHeaders) {
     return {
-        "Access-Control-Allow-Origin": origin || "*",
+        "Access-Control-Allow-Origin": process.env.NOTIFICATION_WRAPPER_ALLOWED_ORIGINS,
         "Access-Control-Allow-Headers":
             requestHeaders ||
             "Content-Type,Authorization,x-pagopa-pn-cx-type,x-pagopa-pn-uid,x-pagopa-pn-cx-id",
@@ -32,7 +32,7 @@ async function handleEvent(event, context) {
 
     if (event.httpMethod === "OPTIONS") {
 
-        return createResponse(200, process.env.NOTIFICATION_WRAPPER_ALLOWED_ORIGINS, "", requestHeaders);
+        return createResponse(200, allowedOrigin, "", requestHeaders);
     }
 
     let jwt;
@@ -67,8 +67,6 @@ async function handleEvent(event, context) {
         const errorData = err.response?.data || { error: err.message };
         return createResponse(err.response?.status || 500, allowedOrigin, errorData, requestHeaders);
     }
-
-
 
     let body = {};
     try {
@@ -161,7 +159,9 @@ async function handleEvent(event, context) {
             documents: apiResponseDelivery.data.documents.map((doc, index) => ({
                 ...doc,
                 safeStorage: safeStorageDocuments[index]
-            }))
+            })),
+            originEnv: process.env.NOTIFICATION_WRAPPER_ALLOWED_ORIGINS,
+            originPassed: allowedOrigin
         };
         return createResponse(200, allowedOrigin, response, requestHeaders);
 
