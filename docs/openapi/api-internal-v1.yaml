@@ -35,19 +35,6 @@ paths:
         - logs
       x-api-permissions:
         - 'log-extract-read'
-      parameters:
-        - in: header
-          name: x-pagopa-pn-uid
-          schema:
-            type: string
-            pattern: '^[A-Za-z0-9-]*$'
-          required: true
-        - in: header
-          name: x-pagopa-pn-cx-type
-          schema:
-            type: string
-            pattern: '^[A-Za-z]*$'
-          required: true
       security:                                                                # ONLY EXTERNAL
         - bearerAuth: [ ]
       operationId: notificationInfoLogs
@@ -138,8 +125,8 @@ components:
     NotificationInfoRequestDto:
       type: object
       required:
-        - ticketNumber
-        - iun
+        - ticketsNumber
+        - iuns
       properties:
         ticketsNumber:
           type: array

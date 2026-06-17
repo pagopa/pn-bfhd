@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: >-
     ${stageVariables.ProjectName}-${stageVariables.MicroServiceUniqueName}-${stageVariables.IntendedUsage}
-  version: QrNGEZrxl6ZcRCLTZAf5ASaWwORD9cDhy9r4dw7m6BE=
+  version: c+1LsP1d86KJSWuMDzNye5ifTMeudIHCgsBNLgdvaVI=
 servers:
   - url: https://${stageVariables.DnsName}/{basePath}
     variables:
@@ -17,19 +17,6 @@ paths:
         - logs
       x-api-permissions:
         - log-extract-read
-      parameters:
-        - in: header
-          name: x-pagopa-pn-uid
-          schema:
-            type: string
-            pattern: ^[A-Za-z0-9-]*$
-          required: true
-        - in: header
-          name: x-pagopa-pn-cx-type
-          schema:
-            type: string
-            pattern: ^[A-Za-z]*$
-          required: true
       security:
         - pn-auth-fleet_backofficeAuthorizer: []
       operationId: notificationInfoLogs
@@ -78,6 +65,7 @@ paths:
         contentHandling: CONVERT_TO_TEXT
         timeoutInMillis: 29000
         type: aws_proxy
+      parameters: []
     options:
       operationId: Options for /logs/v1/notifications/info API CORS
       x-amazon-apigateway-integration:
@@ -149,8 +137,8 @@ components:
     NotificationInfoRequestDto:
       type: object
       required:
-        - ticketNumber
-        - iun
+        - ticketsNumber
+        - iuns
       properties:
         ticketsNumber:
           type: array
