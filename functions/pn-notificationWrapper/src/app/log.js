@@ -26,7 +26,7 @@ function auditLog(
         aud_orig: aud_orig,
         level: status === "KO" ? "WARN" : "INFO",
         level_value: status === "KO" ? 40000 : 20000,
-        logger_name: "tokenExchange",
+        logger_name: "notification-wrapper",
         uid: uid,
         cx_type: cx_type,
         cx_id: cx_id,
