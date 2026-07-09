@@ -84,7 +84,7 @@ async function handleEvent(event, context) {
     const pathDelivery = "/delivery-private/notifications/";
     const pathTimeline = "/timeline-service-private/history/";
     const pathSafeStorage = "safe-storage/v1/files/";
-    const iun = body.iun
+    const iun = body.iuns[0]
     if (!iun) return createResponse(400, allowedOrigin, { error: "Missing iun parameter" }, requestHeaders);
 
     const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
