@@ -142,13 +142,19 @@ async function handleEvent(event, context) {
             apiResponseDelivery.data.documents.map((element) => {
                 const fileKey = element.ref.key;
                 const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
-                s = urlSafeStorage
+
                 return axios.get(urlSafeStorage, {
                     headers: {
                         "x-api-key": "pn-bfhd_api_key",
                         "x-pagopa-safestorage-cx-id": "pn-bfhd",
                     },
-                });
+                })
+                    .catch((error) => {
+                        if (error.response && error.response.status === 410) {
+                            return "Documenti non disponibili in quanto cancellati";
+                        }
+                        throw error;
+                    });
             })
         );
         const safeStorageDocuments = apiResponseSafeStorage.map(res => res.data);
