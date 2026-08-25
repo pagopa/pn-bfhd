@@ -165,7 +165,7 @@ async function handleEvent(event, context) {
         );
 
         auditLog(
-            `Get document success ${apiResponseSafeStorage}`,
+            `Get document success (count=${apiResponseSafeStorage.length})`
             "AUD_ACC_LOGIN",
             allowedOrigin,
             "OK",
