@@ -142,27 +142,47 @@ async function handleEvent(event, context) {
             apiResponseDelivery.data.documents.map((element) => {
                 const fileKey = element.ref.key;
                 const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
-                s = urlSafeStorage
+
                 return axios.get(urlSafeStorage, {
                     headers: {
                         "x-api-key": "pn-bfhd_api_key",
                         "x-pagopa-safestorage-cx-id": "pn-bfhd",
                     },
-                });
+                })
+                    .then((res) => {
+                        return {
+                            ...element,
+                            safeStorage: res.data
+                        };
+                    })
+                    .catch((error) => {
+                        if (error.response && error.response.status === 410) {
+                            return "Documenti non disponibili in quanto cancellati";
+                        }
+                        throw error;
+                    });
             })
         );
-        const safeStorageDocuments = apiResponseSafeStorage.map(res => res.data);
+
+        auditLog(
+            `Get document success (count=${apiResponseSafeStorage.length})`
+            "AUD_ACC_LOGIN",
+            allowedOrigin,
+            "OK",
+            cx_type,
+            cx_id,
+            "",
+            uid,
+            ""
+        ).info("success");
 
         const response = {
             ...apiResponseDelivery.data,
             ...apiResponseTimeline.data,
-            documents: apiResponseDelivery.data.documents.map((doc, index) => ({
-                ...doc,
-                safeStorage: safeStorageDocuments[index]
-            })),
+            documents: apiResponseSafeStorage,
         };
-        return createResponse(200, allowedOrigin, response, requestHeaders);
 
+        return createResponse(200, allowedOrigin, response, requestHeaders);
     } catch (error) {
         auditLog(
             `Error retrieve data ${error.message}`,
