@@ -1,6 +1,6 @@
 {
   "name": "pn-notification-wrapper",
-  "version": "1.2.0-RC.2",
+  "version": "1.2.0-RC.3",
   "description": "Notification wrapper",
   "main": "index.js",
   "scripts": {
