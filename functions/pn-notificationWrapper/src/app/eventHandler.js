@@ -173,29 +173,28 @@ async function handleEvent(event, context) {
 
         const globalTimeline = [];
 
-        rawTimeline.forEach((event) => {
+        rawTimeline.forEach((timelineEvent) => {
             let assigned = false;
 
-            if (event.details && typeof event.details.recIndex !== 'undefined' && event.details.recIndex !== null) {
-                const index = event.details.recIndex;
+            if (timelineEvent.details && typeof timelineEvent.details.recIndex !== "undefined" && timelineEvent.details.recIndex !== null) {
+                const index = timelineEvent.details.recIndex;
                 if (timelineByRecipient[index]) {
-                    timelineByRecipient[index].push(event);
+                    timelineByRecipient[index].push(timelineEvent);
                     assigned = true;
                 }
-            }
-            else if (event.elementId && event.elementId.includes(".RECINDEX_")) {
-                const match = event.elementId.match(/\.RECINDEX_(\d+)/);
+            } else if (timelineEvent.elementId && timelineEvent.elementId.includes(".RECINDEX_")) {
+                const match = timelineEvent.elementId.match(/\.RECINDEX_(\d+)/);
                 if (match && match[1]) {
                     const index = parseInt(match[1], 10);
                     if (timelineByRecipient[index]) {
-                        timelineByRecipient[index].push(event);
+                        timelineByRecipient[index].push(timelineEvent);
                         assigned = true;
                     }
                 }
             }
 
             if (!assigned) {
-                globalTimeline.push(event);
+                globalTimeline.push(timelineEvent);
             }
         });
 
