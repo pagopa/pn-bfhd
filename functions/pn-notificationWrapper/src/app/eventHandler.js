@@ -28,10 +28,8 @@ async function handleEvent(event, context) {
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
     auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
-    // const headers = JSON.parse(JSON.stringify(event["headers"] || {}));
 
     if (event.httpMethod === "OPTIONS") {
-
         return createResponse(200, allowedOrigin, "", requestHeaders);
     }
 
@@ -89,6 +87,7 @@ async function handleEvent(event, context) {
 
     const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
     const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}`
+
     try {
         const apiResponseDelivery = await axios.get(
             urlDelivery,
@@ -111,11 +110,11 @@ async function handleEvent(event, context) {
             uid,
             ""
         ).info("success");
+
         const createdAt = apiResponseDelivery.data?.sentAt
         const apiResponseTimeline = await axios.get(
             urlTimeline,
             {
-
                 headers: {
                     "x-pagopa-pn-uid": uid,
                     "x-pagopa-pn-cx-type": cx_type,
@@ -138,11 +137,11 @@ async function handleEvent(event, context) {
             uid,
             ""
         ).info("success");
+
         const apiResponseSafeStorage = await Promise.all(
             apiResponseDelivery.data.documents.map((element) => {
                 const fileKey = element.ref.key;
                 const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
-
                 return axios.get(urlSafeStorage, {
                     headers: {
                         "x-api-key": "pn-bfhd_api_key",
@@ -164,25 +163,56 @@ async function handleEvent(event, context) {
             })
         );
 
-        auditLog(
-            `Get document success (count=${apiResponseSafeStorage.length})`
-            "AUD_ACC_LOGIN",
-            allowedOrigin,
-            "OK",
-            cx_type,
-            cx_id,
-            "",
-            uid,
-            ""
-        ).info("success");
+        const rawTimeline = apiResponseTimeline.data.timeline || [];
+        const recipientsList = apiResponseDelivery.data.recipients || [];
+
+        const timelineByRecipient = {};
+        recipientsList.forEach((_, index) => {
+            timelineByRecipient[index] = [];
+        });
+
+        const globalTimeline = [];
+
+        rawTimeline.forEach((timelineEvent) => {
+            let assigned = false;
+
+            if (timelineEvent.details && typeof timelineEvent.details.recIndex !== "undefined" && timelineEvent.details.recIndex !== null) {
+                const index = timelineEvent.details.recIndex;
+                if (timelineByRecipient[index]) {
+                    timelineByRecipient[index].push(timelineEvent);
+                    assigned = true;
+                }
+            } else if (timelineEvent.elementId && timelineEvent.elementId.includes(".RECINDEX_")) {
+                const match = timelineEvent.elementId.match(/\.RECINDEX_(\d+)/);
+                if (match && match[1]) {
+                    const index = parseInt(match[1], 10);
+                    if (timelineByRecipient[index]) {
+                        timelineByRecipient[index].push(timelineEvent);
+                        assigned = true;
+                    }
+                }
+            }
+
+            if (!assigned) {
+                globalTimeline.push(timelineEvent);
+            }
+        });
+
+        const recipientsWithTimeline = recipientsList.map((recipient, index) => ({
+            ...recipient,
+            timeline: timelineByRecipient[index] || []
+        }));
 
         const response = {
             ...apiResponseDelivery.data,
             ...apiResponseTimeline.data,
-            documents: apiResponseSafeStorage,
+            recipients: recipientsWithTimeline,
+            timeline: globalTimeline,
+            documents: apiResponseSafeStorage
         };
 
         return createResponse(200, allowedOrigin, response, requestHeaders);
+
     } catch (error) {
         auditLog(
             `Error retrieve data ${error.message}`,
