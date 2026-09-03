@@ -54,7 +54,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseResponseDto'
+                $ref: '#/components/schemas/NotificationInfoResponseDto'
         '400':
           description: Errors during the request validation
           content:
@@ -69,59 +69,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
 components:
   schemas:
-    SessionLogsRequestDto:
-      type: object
-      required:
-        - ticketNumber
-        - jti
-        - dateFrom
-        - dateTo
-        - deanonimization
-      properties:
-        ticketNumber:
-          type: string
-        jti:
-          type: string
-          pattern: '[\w-]+'
-          maxLength: 60
-        dateFrom:
-          type: string
-          format: date
-        dateTo:
-          type: string
-          format: date
-        deanonimization:
-          type: boolean
-    PersonPersonIdRequestDto:
-      type: object
-      required:
-        - ticketNumber
-        - recipientType
-      properties:
-        ticketNumber:
-          type: string
-        piva:
-          type: string
-          minLength: 11
-          maxLength: 11
-          pattern: '^([0-9]{11})$'
-        taxId:
-          type: string
-          minLength: 16
-          maxLength: 16
-          pattern: '^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1})$'
-        recipientType:
-          $ref: '#/components/schemas/RecipientTypes'
-    PersonTaxIdRequestDto:
-      type: object
-      required:
-        - personId
-      properties:
-        personId:
-          type: string
-          minLength: 1
-          maxLength: 100
-          pattern: '[A-Za-z0-9~_-]*'
     NotificationInfoRequestDto:
       type: object
       required:
@@ -131,76 +78,401 @@ components:
         ticketsNumber:
           type: array
           items:
-            type: string
+           type: string
         iuns:
           type: array
           items:
-            type: string
+          type: string
           minLength: 25
           maxLength: 25
-    PersonLogsRequestDto:
+    NotificationInfoResponseDto:
+      title: Notification Info Response Data Model
       type: object
-      required:
-        - ticketNumber
-        - deanonimization
       properties:
-        ticketNumber:
+        abstract:
           type: string
-        deanonimization:
-          type: boolean
-        taxId:
+        paProtocolNumber:
           type: string
-          pattern: '^([A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST]{1}[0-9LMNPQRSTUV]{2}[A-Z]{1}[0-9LMNPQRSTUV]{3}[A-Z]{1})$'
-        personId:
+        subject:
+          type: string
+        recipients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
+        documents:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/Document'
+            - type: array
+              items:
+                type: string
+              description: "Array di stringhe nel caso in cui i documenti siano stati cancellati (es. errore 410 da SafeStorage)"
+        notificationFeePolicy:
+          type: string
+        physicalCommunicationType:
+          type: string
+        senderDenomination:
+          type: string
+        senderTaxId:
+          type: string
+        group:
+          type: string
+        taxonomyCode:
+          type: string
+        paFee:
+          type: number
+        vat:
+          type: number
+        pagoPaIntMode:
+          type: string
+        additionalLanguages:
+          type: array
+          items:
+            type: string
+        senderPaId:
           type: string
         iun:
           type: string
-          minLength: 25
-          maxLength: 25
-          pattern: '([A-Za-z]{4})-([A-Za-z]{4})-([A-Za-z]{4})-([0-9]{6})-([A-Za-z]{1})-([0-9]{1})'
-        dateFrom:
+        sentAt:
           type: string
-          format: date
-        dateTo:
+          format: date-time
+        documentsAvailable:
+          type: boolean
+        notificationStatus:
           type: string
-          format: date
-        recipientType:
-          $ref: '#/components/schemas/RecipientTypes'
-    TraceIdLogsRequestDto:
-      type: object
+        notificationStatusHistory:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationStatusHistory'
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineElement'
       required:
-        - traceId
-        - dateFrom
-        - dateTo
-      properties:
-        traceId:
-          type: string
-        dateFrom:
-          type: string
-          format: date
-        dateTo:
-          type: string
-          format: date
-    GetBasicDataResponseDto:
+        - paProtocolNumber
+        - subject
+        - recipients
+        - documents
+        - notificationFeePolicy
+        - physicalCommunicationType
+        - senderDenomination
+        - senderTaxId
+        - taxonomyCode
+        - paFee
+        - vat
+        - pagoPaIntMode
+        - additionalLanguages
+        - senderPaId
+        - iun
+        - sentAt
+        - documentsAvailable
+        - notificationStatus
+        - notificationStatusHistory
+        - timeline
+    Recipient:
       type: object
-      required:
-        - data
-        - message
       properties:
-        data:
-          type: string
-        message:
-          type: string
-    BaseResponseDto:
-      title: Success response from the server
+      recipientType:
+         type: string
+         enum:
+           - PF
+           - PG
+      description: "Tipo di destinatario: Persona Fisica (PF) o Persona Giuridica (PG)"
+      taxId:
+        type: string
+        description: "Codice Fiscale o Partita IVA del destinatario"
+      denomination:
+        type: string
+        description: "Nome e cognome o ragione sociale"
+      physicalAddress:
+        $ref: '#/components/schemas/PhysicalAddress'
+      payments:
+        type: array
+        items:
+          $ref: '#/components/schemas/Payment'
+      timeline:
+        type: array
+        items:
+         $ref: '#/components/schemas/TimelineElement'
+      required:
+        - recipientType
+        - taxId
+        - denomination
+        - physicalAddress
+         - timeline
+    Payment:
       type: object
-      required:
-        - message
       properties:
-        message:
+        pagoPa:
+          $ref: '#/components/schemas/PagoPa'
+    PagoPa:
+      type: object
+      properties:
+        noticeCode:
           type: string
+          description: "Codice di avviso di pagamento (IUV)"
+        creditorTaxId:
+          type: string
+          description: "Codice fiscale dell'ente creditore"
+        applyCost:
+          type: boolean
+          description: "Indica se applicare i costi di notifica/pagamento"
+        attachment:
+          $ref: '#/components/schemas/Attachment'
+      required:
+        - noticeCode
+        - creditorTaxId
+        - applyCost
+    Attachment:
+      type: object
+      properties:
+        digests:
+          $ref: '#/components/schemas/Digest'
+        contentType:
+          type: string
+          description: "Tipo MIME del file (es. application/pdf)"
+        ref:
+          $ref: '#/components/schemas/Ref'
+      required:
+        - digests
+        - contentType
+        - ref
+    Ref:
+      type: object
+      properties:
+        key:
+          type: string
+          description: "La chiave identificativa del file o del documento"
+        versionToken:
+          type: string
+          description: "Il token di versione associato al file"
+      required:
+        - key
+        - versionToken
+    PhysicalAddress:
+      type: object
+      properties:
+        at:
+          type: string
+          description: "Presso / C/O (es. Nome sul citofono)"
+        address:
+          type: string
+          description: "Indirizzo completo (via, piazza, numero civico)"
+        addressDetails:
+          type: string
+          description: "Dettagli aggiuntivi dell'indirizzo (es. Scala, Piano)"
+        zip:
+          type: string
+          description: "Codice di avviamento postale (CAP)"
+        municipality:
+          type: string
+          description: "Comune o località"
+        municipalityDetails:
+          type: string
+          description: "Dettagli aggiuntivi del comune (es. Frazione)"
+        province:
+          type: string
+          description: "Sigla della provincia (es. RM, MI)"
+        foreignState:
+          type: string
+          description: "Stato estero (se applicabile)"
+      required:
+        - address
+        - zip
+        - municipality
+        - province
+    TimelineElement:
+      type: object
+      properties:
+      elementId:
+        type: string
+      timestamp:
+      type: string
+      format: date-time
+      ingestionTimestamp:
+        type: string
+        format: date-time
+      eventTimestamp:
+        type: string
+        format: date-time
+      notificationSentAt:
+        type: string
+        format: date-time
+      legalFactsIds:
+        type: array
+        items:
+         $ref: '#/components/schemas/LegalFact'
+      category:
+       type: string
+      details:
+      $ref: '#/components/schemas/TimelineDetails'
+      required:
+        - elementId
+        - timestamp
+        - ingestionTimestamp
+        - eventTimestamp
+        - notificationSentAt
+        - legalFactsIds
+        - category
+        - details
+    LegalFact:
+      type: object
+      properties:
+        key:
+          type: string
+          description: "La chiave identificativa del fatto legale (es. file key o ID)"
+        category:
+          type: string
+          description: "La categoria dell'atto o del fatto legale"
+      required:
+        - key
+        - category
+    Document:
+      type: object
+      properties:
+        ref:
+          type: object
+          properties:
+            key:
+              type: string
+        safeStorage:
+          type: object
+    NotificationStatusHistory:
+      type: object
+      properties:
+        status:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+    TimelineDetails:
+      type: object
+      properties:
+        recIndex:
+          type: integer
+        notificationRequestId:
+          type: string
+        paProtocolNumber:
+          type: string
+        legalFactId:
+          type: string
+        physicalAddress:
+          $ref: '#/components/schemas/PhysicalAddress'
+        digitalAddressSource:
+          type: string
+        isAvailable:
+          type: boolean
+        attemptDate:
+          type: string
+          format: date-time
+        deliveryMode:
+          type: string
+        contactPhase:
+          type: string
+        sentAttemptMade:
+          type: integer
+        sendDate:
+          oneOf:
+            - type: string
+            - type: integer
+            - type: string
+              format: date-time
+        digitalAddress:
+          type: object
+          properties:
+            type:
+              type: string
+            address:
+              type: string
+        schedulingAnalogDate:
+          type: string
+          format: date-time
+        schedulingDate:
+          type: string
+          format: date-time
+        serviceLevel:
+          type: string
+        notificationDate:
+          type: string
+          format: date-time
+        deliveryDetailCode:
+          type: string
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineAttachment'
+        sendRequestId:
+          type: string
+        registeredLetterCode:
+          type: string
+        responseStatus:
+          type: string
+        eventTimestamp:
+          type: string
+          format: date-time
+        notificationCost:
+          type: number
+        numberOfPages:
+          type: integer
+        aarKey:
+          type: string
+        generatedAarUrl:
+          type: string
+          format: uri
+        oldAddress:
+          $ref: '#/components/schemas/PhysicalAddress'
+        normalizedAddress:
+          $ref: '#/components/schemas/PhysicalAddress'
+        productType:
+          type: string
+        analogCost:
+          type: number
+        envelopeWeight:
+          type: number
+        prepareRequestId:
+          type: string
+        deliveryFailureCause:
+          type: string
+        ioSendMessageResult:
+          type: string
+      required:
+        - deliveryFailureCause
+        - ioSendMessageResult
+    TimelineElement:
+      type: object
+      properties:
+        elementId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          $ref: '#/components/schemas/TimelineDetails'
+    TimelineAttachment:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "Identificativo univoco dell'allegato"
+        documentType:
+          type: string
+          description: "Tipo di documento allegato"
+        url:
+          type: string
+          format: uri
+          description: "URL per il download o la visualizzazione dell'allegato"
+        date:
+          type: string
+          format: date-time
+          description: "Data associata all'allegato"
+      required:
+        - id
+        - documentType
+        - url
+        - date
     Problem:
-      properties:
+        properties:
         type:
           description: URI reference of type definition
           type: string
@@ -238,127 +510,15 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/ProblemError'
-      required:
-        - status
-        - errors
-    ProblemError:
-      properties:
-        code:
-          description: Internal code of the error, in human-readable format
-          example: PN_PARAMETER_TOO_LONG | PN_PARAMETER_TOO_SHORT | PN_DUPLICATE_ENTRY | etc...
-          type: string
-        element:
-          description: Parameter or request body field name for validation error
-          example: 'body.order.item[2].quantity'
-          type: string
-        detail:
-          description: A human readable explanation specific to this occurrence of the problem.
-          example: Parameter not valid
-          maxLength: 1024
-          type: string
-      required:
-        - code
-    PnStatusUpdateEventRequestDto:
-      title: Event of inefficiency start or end
-      type: object
-      required:
-        - status
-        - timestamp
-        - functionality
-        - sourceType
-      properties:
-        status:
-          $ref: '#/components/schemas/PnFunctionalityStatus'
-        timestamp:
-          title: the time when the status has changed
-          type: string
-          format: date-time
-        functionality:
-          title: functionality list whose availability status has changed
-          type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/PnFunctionality'
-        sourceType:
-          title: event origin type
-          type: string
-          enum:
-            - OPERATOR
-        source:
-          title: origin event identifier
-          type: string
-    PnStatusResponseDto:
-      title: PN actual status
-      description: >-
-        PN functionalities and inefficiencies known list when the request is sent
-      type: object
-      required:
-        - functionalities
-        - openIncidents
-      properties:
-        functionalities:
-          title: PN functionalities list
-          type: array
-          items:
-            $ref: '#/components/schemas/PnFunctionality'
-        openIncidents:
-          title: Inefficiencies list
-          type: array
-          items:
-            $ref: '#/components/schemas/PnDowntimeEntry'
-    PnDowntimeEntry:
-      title: Data related to a PN inefficiency
-      type: object
-      required:
-        - functionality
-        - status
-        - startDate
-      properties:
-        functionality:
-          $ref: '#/components/schemas/PnFunctionality'
-        status:
-          $ref: '#/components/schemas/PnFunctionalityStatus'
-        startDate:
-          title: Inefficiency start date
-          type: string
-          format: date-time
-        endDate:
-          title: Inefficiency end date
-          description: >-
-            if the inefficiency is still active, this field will be absent or _null_
-          type: string
-          format: date-time
-    RecipientTypes:
-      title: PN recipient types
-      type: string
-      enum: [ "PF", "PG"]
-    PnFunctionalityStatus:
-      title: PN functionalities' status
-      type: string
-      enum:
-        - KO
-        - OK
-    PnFunctionality:
-      title: PN functionalities
-      description: >-
-        - __NOTIFICATION_CREATE__: the possibility to create new notifications
-        - __NOTIFICATION_VISUALIZATION__: the possibility to visualize the notifications and download the legalfacts
-        - __NOTIFICATION_WORKFLOW__: the notification process advancement
-      type: string
-      enum:
-        - NOTIFICATION_CREATE
-        - NOTIFICATION_VISUALIZATION
-        - NOTIFICATION_WORKFLOW
-      x-enum-varnames:
-        - NOTIFICATION_CREATE
-        - NOTIFICATION_VISUALIZATION
-        - NOTIFICATION_WORKFLOW
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-security:
-  - bearerAuth: []
+        required:
+          - status
+          - errors
+    securitySchemes:
+         bearerAuth:
+           type: http
+           scheme: bearer
+           bearerFormat: JWT
+    security:
+      - bearerAuth: []
 
 
