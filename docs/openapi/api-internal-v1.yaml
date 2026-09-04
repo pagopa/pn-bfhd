@@ -351,7 +351,6 @@ components:
           type: integer
         sendDate:
           oneOf:
-            - type: string
             - type: integer
             - type: string
               format: date-time
@@ -474,7 +473,18 @@ components:
         - documentType
         - url
         - date
-        
+
+    ProblemError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+
     Problem:
       type: object
       properties:
