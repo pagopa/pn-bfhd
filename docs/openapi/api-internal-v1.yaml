@@ -257,6 +257,19 @@ components:
         - key
         - versionToken
 
+    Digest:
+      type: object
+      properties:
+        algorithm:
+          type: string
+          description: "Digest algorithm (e.g., SHA-256)"
+        value:
+          type: string
+          description: "Hex or base64 digest value"
+      required:
+        - algorithm
+        - value
+
     PhysicalAddress:
       type: object
       properties:
