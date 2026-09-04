@@ -78,13 +78,14 @@ components:
         ticketsNumber:
           type: array
           items:
-           type: string
+            type: string
         iuns:
           type: array
           items:
-          type: string
-          minLength: 25
-          maxLength: 25
+            type: string
+            minLength: 25
+            maxLength: 25
+
     NotificationInfoResponseDto:
       title: Notification Info Response Data Model
       type: object
@@ -170,42 +171,45 @@ components:
         - notificationStatus
         - notificationStatusHistory
         - timeline
+
     Recipient:
       type: object
-      properties:
-      recipientType:
-         type: string
-         enum:
-           - PF
-           - PG
       description: "Tipo di destinatario: Persona Fisica (PF) o Persona Giuridica (PG)"
-      taxId:
-        type: string
-        description: "Codice Fiscale o Partita IVA del destinatario"
-      denomination:
-        type: string
-        description: "Nome e cognome o ragione sociale"
-      physicalAddress:
-        $ref: '#/components/schemas/PhysicalAddress'
-      payments:
-        type: array
-        items:
-          $ref: '#/components/schemas/Payment'
-      timeline:
-        type: array
-        items:
-         $ref: '#/components/schemas/TimelineElement'
+      properties:
+        recipientType:
+          type: string
+          enum:
+            - PF
+            - PG
+        taxId:
+          type: string
+          description: "Codice Fiscale o Partita IVA del destinatario"
+        denomination:
+          type: string
+          description: "Nome e cognome o ragione sociale"
+        physicalAddress:
+          $ref: '#/components/schemas/PhysicalAddress'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payment'
+        timeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimelineElement'
       required:
         - recipientType
         - taxId
         - denomination
         - physicalAddress
-         - timeline
+        - timeline
+
     Payment:
       type: object
       properties:
         pagoPa:
           $ref: '#/components/schemas/PagoPa'
+
     PagoPa:
       type: object
       properties:
@@ -224,6 +228,7 @@ components:
         - noticeCode
         - creditorTaxId
         - applyCost
+
     Attachment:
       type: object
       properties:
@@ -238,6 +243,7 @@ components:
         - digests
         - contentType
         - ref
+
     Ref:
       type: object
       properties:
@@ -250,6 +256,7 @@ components:
       required:
         - key
         - versionToken
+
     PhysicalAddress:
       type: object
       properties:
@@ -282,40 +289,7 @@ components:
         - zip
         - municipality
         - province
-    TimelineElement:
-      type: object
-      properties:
-      elementId:
-        type: string
-      timestamp:
-      type: string
-      format: date-time
-      ingestionTimestamp:
-        type: string
-        format: date-time
-      eventTimestamp:
-        type: string
-        format: date-time
-      notificationSentAt:
-        type: string
-        format: date-time
-      legalFactsIds:
-        type: array
-        items:
-         $ref: '#/components/schemas/LegalFact'
-      category:
-       type: string
-      details:
-      $ref: '#/components/schemas/TimelineDetails'
-      required:
-        - elementId
-        - timestamp
-        - ingestionTimestamp
-        - eventTimestamp
-        - notificationSentAt
-        - legalFactsIds
-        - category
-        - details
+
     LegalFact:
       type: object
       properties:
@@ -328,6 +302,7 @@ components:
       required:
         - key
         - category
+
     Document:
       type: object
       properties:
@@ -338,6 +313,7 @@ components:
               type: string
         safeStorage:
           type: object
+
     NotificationStatusHistory:
       type: object
       properties:
@@ -346,6 +322,7 @@ components:
         updatedAt:
           type: string
           format: date-time
+
     TimelineDetails:
       type: object
       properties:
@@ -439,6 +416,7 @@ components:
       required:
         - deliveryFailureCause
         - ioSendMessageResult
+
     TimelineElement:
       type: object
       properties:
@@ -447,8 +425,33 @@ components:
         timestamp:
           type: string
           format: date-time
+        ingestionTimestamp:
+          type: string
+          format: date-time
+        eventTimestamp:
+          type: string
+          format: date-time
+        notificationSentAt:
+          type: string
+          format: date-time
+        legalFactsIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/LegalFact'
+        category:
+          type: string
         details:
           $ref: '#/components/schemas/TimelineDetails'
+      required:
+        - elementId
+        - timestamp
+        - ingestionTimestamp
+        - eventTimestamp
+        - notificationSentAt
+        - legalFactsIds
+        - category
+        - details
+
     TimelineAttachment:
       type: object
       properties:
@@ -471,8 +474,10 @@ components:
         - documentType
         - url
         - date
+        
     Problem:
-        properties:
+      type: object
+      properties:
         type:
           description: URI reference of type definition
           type: string
@@ -488,13 +493,13 @@ components:
           description: A short, summary of the problem type. Written in english and readable
           example: Service Unavailable
           maxLength: 64
-          pattern: ^[ -~]{0,64}$
+          pattern: '^[ -~]{0,64}$'
           type: string
         detail:
           description: A human readable explanation of the problem.
           example: Request took too long to complete.
           maxLength: 4096
-          pattern: ^.{0,4096}$
+          pattern: '^.{0,4096}$'
           type: string
         traceId:
           description: Internal support identifier associated to error
@@ -510,15 +515,18 @@ components:
           minItems: 1
           items:
             $ref: '#/components/schemas/ProblemError'
-        required:
-          - status
-          - errors
-    securitySchemes:
-         bearerAuth:
-           type: http
-           scheme: bearer
-           bearerFormat: JWT
-    security:
-      - bearerAuth: []
+      required:
+        - status
+        - errors
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
 
 
