@@ -137,7 +137,7 @@ async function handleEvent(event, context) {
             uid,
             ""
         ).info("success");
-
+        let documentCancelledCount = 0;
         const apiResponseSafeStorage = await Promise.all(
             apiResponseDelivery.data.documents.map((element) => {
                 const fileKey = element.ref.key;
@@ -156,6 +156,7 @@ async function handleEvent(event, context) {
                     })
                     .catch((error) => {
                         if (error.response && error.response.status === 410) {
+                            documentCancelledCount++;
                             return "Documenti non disponibili in quanto cancellati";
                         }
                         throw error;
@@ -203,13 +204,18 @@ async function handleEvent(event, context) {
             timeline: timelineByRecipient[index] || []
         }));
 
+
         const response = {
             ...apiResponseDelivery.data,
             ...apiResponseTimeline.data,
             recipients: recipientsWithTimeline,
             timeline: globalTimeline,
-            documents: apiResponseSafeStorage
+            documents: apiResponseSafeStorage,
         };
+
+        if (documentCancelledCount === apiResponseDelivery.data.documents.length) {
+            response.documents = { description: "Documenti non disponibili in quanto cancellati", documentCancelledCount: documentCancelledCount };
+        }
 
         return createResponse(200, allowedOrigin, response, requestHeaders);
 
