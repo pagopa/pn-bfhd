@@ -156,7 +156,7 @@ async function handleEvent(event, context) {
                     })
                     .catch((error) => {
                         if (error.response && error.response.status === 410) {
-                            return "Documenti non disponibili in quanto cancellati";
+                            return "non disponibili in quanto cancellati dopo 120gg dal perfezionamento";
                         }
                         throw error;
                     });
