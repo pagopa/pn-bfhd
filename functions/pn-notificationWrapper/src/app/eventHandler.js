@@ -171,16 +171,11 @@ async function handleEvent(event, context) {
             timelineByRecipient[index] = [];
         });
 
-        const globalTimeline = [];
-
         rawTimeline.forEach((timelineEvent) => {
-            let assigned = false;
-
             if (timelineEvent.details && typeof timelineEvent.details.recIndex !== "undefined" && timelineEvent.details.recIndex !== null) {
                 const index = timelineEvent.details.recIndex;
                 if (timelineByRecipient[index]) {
                     timelineByRecipient[index].push(timelineEvent);
-                    assigned = true;
                 }
             } else if (timelineEvent.elementId && timelineEvent.elementId.includes(".RECINDEX_")) {
                 const match = timelineEvent.elementId.match(/\.RECINDEX_(\d+)/);
@@ -188,13 +183,8 @@ async function handleEvent(event, context) {
                     const index = parseInt(match[1], 10);
                     if (timelineByRecipient[index]) {
                         timelineByRecipient[index].push(timelineEvent);
-                        assigned = true;
                     }
                 }
-            }
-
-            if (!assigned) {
-                globalTimeline.push(timelineEvent);
             }
         });
 
@@ -207,7 +197,7 @@ async function handleEvent(event, context) {
             ...apiResponseDelivery.data,
             ...apiResponseTimeline.data,
             recipients: recipientsWithTimeline,
-            timeline: globalTimeline,
+            timeline: rawTimeline,
             documents: apiResponseSafeStorage
         };
 
