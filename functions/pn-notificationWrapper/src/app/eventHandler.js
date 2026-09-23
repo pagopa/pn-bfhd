@@ -157,7 +157,7 @@ async function handleEvent(event, context) {
                     .catch((error) => {
                         if (error.response && error.response.status === 410) {
                             documentCancelledCount++;
-                            return "Documenti non disponibili in quanto cancellati";
+                            return "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento";
                         }
                         throw error;
                     });
@@ -172,16 +172,11 @@ async function handleEvent(event, context) {
             timelineByRecipient[index] = [];
         });
 
-        const globalTimeline = [];
-
         rawTimeline.forEach((timelineEvent) => {
-            let assigned = false;
-
             if (timelineEvent.details && typeof timelineEvent.details.recIndex !== "undefined" && timelineEvent.details.recIndex !== null) {
                 const index = timelineEvent.details.recIndex;
                 if (timelineByRecipient[index]) {
                     timelineByRecipient[index].push(timelineEvent);
-                    assigned = true;
                 }
             } else if (timelineEvent.elementId && timelineEvent.elementId.includes(".RECINDEX_")) {
                 const match = timelineEvent.elementId.match(/\.RECINDEX_(\d+)/);
@@ -189,13 +184,8 @@ async function handleEvent(event, context) {
                     const index = parseInt(match[1], 10);
                     if (timelineByRecipient[index]) {
                         timelineByRecipient[index].push(timelineEvent);
-                        assigned = true;
                     }
                 }
-            }
-
-            if (!assigned) {
-                globalTimeline.push(timelineEvent);
             }
         });
 
@@ -209,12 +199,12 @@ async function handleEvent(event, context) {
             ...apiResponseDelivery.data,
             ...apiResponseTimeline.data,
             recipients: recipientsWithTimeline,
-            timeline: globalTimeline,
-            documents: apiResponseSafeStorage,
+            timeline: rawTimeline,
+            documents: apiResponseSafeStorage
         };
 
         if (documentCancelledCount === apiResponseDelivery.data.documents.length) {
-            response.documents = { description: "Documenti non disponibili in quanto cancellati", documentCancelledCount: documentCancelledCount };
+            response.documents = { description: "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento", documentCancelledCount: documentCancelledCount };
         }
 
         return createResponse(200, allowedOrigin, response, requestHeaders);
