@@ -164,6 +164,130 @@ async function handleEvent(event, context) {
             })
         );
 
+        const updatedTimeline = await Promise.all(
+            data.timeline.map(async (event) => {
+                // Cloniamo l'evento e i suoi sotto-oggetti per poterli sovrascrivere in sicurezza
+                let updatedEvent = {
+                    ...event,
+                    details: { ...event.details },
+                    categorizedAttachmentsResult: event.categorizedAttachmentsResult
+                        ? { ...event.categorizedAttachmentsResult }
+                        : undefined
+                };
+
+                // --- CASO 1: Sostituzione di details.legalFactId ---
+                const legalFactId = updatedEvent.details?.legalFactId;
+                if (legalFactId && legalFactId.includes("PN_LEGAL_FACTS")) {
+                    try {
+                        const fileKey = legalFactId.replace("safestorage://", "").split('?')[0];
+                        const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
+
+                        const res = await axios.get(urlSafeStorage, {
+                            headers: {
+                                "x-api-key": "pn-bfhd_api_key",
+                                "x-pagopa-safestorage-cx-id": "pn-bfhd",
+                            },
+                        });
+
+                        // Sostituiamo la stringa "safestorage://..." direttamente con l'oggetto di risposta
+                        updatedEvent.details.legalFactId = res.data;
+                    } catch (error) {
+                        if (error.response && error.response.status === 410) {
+                            documentCancelledCount++;
+                            updatedEvent.details.legalFactId = "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento";
+                        } else {
+                            throw error;
+                        }
+                    }
+                }
+
+                // --- CASO 2: Sostituzione di fileKey dentro categorizedAttachmentsResult.acceptedAttachments ---
+                const acceptedAttachments = updatedEvent.categorizedAttachmentsResult?.acceptedAttachments;
+                if (acceptedAttachments && Array.isArray(acceptedAttachments) && acceptedAttachments.length > 0) {
+                    updatedEvent.categorizedAttachmentsResult.acceptedAttachments = await Promise.all(
+                        acceptedAttachments.map(async (attachment) => {
+                            if (attachment.fileKey && attachment.fileKey.startsWith("safestorage://")) {
+                                try {
+                                    const fileKey = attachment.fileKey.replace("safestorage://", "").split('?')[0];
+                                    const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
+
+                                    const res = await axios.get(urlSafeStorage, {
+                                        headers: {
+                                            "x-api-key": "pn-bfhd_api_key",
+                                            "x-pagopa-safestorage-cx-id": "pn-bfhd",
+                                        },
+                                    });
+
+                                    // Sovrascriviamo la proprietà fileKey con l'oggetto ritornato dall'API
+                                    return {
+                                        ...attachment,
+                                        fileKey: res.data
+                                    };
+                                } catch (error) {
+                                    if (error.response && error.response.status === 410) {
+                                        documentCancelledCount++;
+                                        return {
+                                            ...attachment,
+                                            fileKey: "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento"
+                                        };
+                                    }
+                                    throw error;
+                                }
+                            }
+                            return attachment;
+                        })
+                    );
+                }
+
+                // --- CASO 3: Sostituzione di url dentro details.attachments ---
+                const attachments = updatedEvent.details?.attachments;
+                if (attachments && Array.isArray(attachments) && attachments.length > 0) {
+                    updatedEvent.details.attachments = await Promise.all(
+                        attachments.map(async (attachment) => {
+                            // Controlliamo ed estraiamo dal campo .url invece di .fileKey
+                            if (attachment.url && attachment.url.startsWith("safestorage://")) {
+                                try {
+                                    const fileKey = attachment.url.replace("safestorage://", "").split('?')[0];
+                                    const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
+
+                                    const res = await axios.get(urlSafeStorage, {
+                                        headers: {
+                                            "x-api-key": "pn-bfhd_api_key",
+                                            "x-pagopa-safestorage-cx-id": "pn-bfhd",
+                                        },
+                                    });
+
+                                    // Sovrascriviamo la proprietà .url con l'oggetto di risposta di SafeStorage
+                                    return {
+                                        ...attachment,
+                                        url: res.data
+                                    };
+                                } catch (error) {
+                                    if (error.response && error.response.status === 410) {
+                                        documentCancelledCount++;
+                                        return {
+                                            ...attachment,
+                                            url: "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento"
+                                        };
+                                    }
+                                    throw error;
+                                }
+                            }
+                            return attachment;
+                        })
+                    );
+                }
+
+                return updatedEvent;
+            })
+        );
+
+
+
+        // Ora puoi riassegnare l'array aggiornato al tuo oggetto originale
+        data.timeline = updatedTimeline;
+
+
         const rawTimeline = apiResponseTimeline.data.timeline || [];
         const recipientsList = apiResponseDelivery.data.recipients || [];
 
