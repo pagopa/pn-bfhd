@@ -165,7 +165,7 @@ async function handleEvent(event, context) {
         );
 
         const updatedTimeline = await Promise.all(
-            data.timeline.map(async (event) => {
+            apiResponseTimeline.data.timeline.map(async (event) => {
                 // Cloniamo l'evento e i suoi sotto-oggetti per poterli sovrascrivere in sicurezza
                 let updatedEvent = {
                     ...event,
