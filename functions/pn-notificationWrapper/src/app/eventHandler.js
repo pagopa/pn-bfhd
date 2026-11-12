@@ -122,7 +122,7 @@ async function handleEvent(event, context) {
             {
                 headers: pnHeaders,
                 params: {
-                    numberOfRecipients: 0,
+                    numberOfRecipients: apiResponseDelivery.data?.recipients?.length ?? 0,
                     createdAt: createdAt
                 }
             }
