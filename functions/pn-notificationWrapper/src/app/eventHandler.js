@@ -146,7 +146,7 @@ async function handleEvent(event, context) {
                 return axios.get(urlSafeStorage, {
                     headers: {
                         "x-api-key": "pn-bfhd_api_key",
-                        "x-pagopa-safestorage-cx-id": "pn-bfhd",
+                        "x-pagopa-safestorage-cx-id": "pn-bfhd"
                     },
                 })
                     .then((res) => {
