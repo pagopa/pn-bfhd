@@ -1,3 +1,6 @@
+const AWSXRay = require('aws-xray-sdk-core');
+AWSXRay.captureHTTPsGlobal(require('http'));
+AWSXRay.captureHTTPsGlobal(require('https'));
 const axios = require('axios');
 const jsonwebtoken = require('jsonwebtoken');
 const { auditLog } = require("./log.js");
@@ -93,10 +96,6 @@ async function handleEvent(event, context) {
             urlDelivery,
             {
                 headers: {
-                    "x-pagopa-pn-uid": uid,
-                    "x-pagopa-pn-cx-type": cx_type,
-                    "x-pagopa-pn-cx-id": cx_id
-                }
             }
         );
         auditLog(
