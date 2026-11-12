@@ -95,7 +95,7 @@ async function handleEvent(event, context) {
         const apiResponseDelivery = await axios.get(
             urlDelivery,
             {
-                headers: {
+                headers: pnHeaders
             }
         );
         auditLog(
@@ -114,11 +114,7 @@ async function handleEvent(event, context) {
         const apiResponseTimeline = await axios.get(
             urlTimeline,
             {
-                headers: {
-                    "x-pagopa-pn-uid": uid,
-                    "x-pagopa-pn-cx-type": cx_type,
-                    "x-pagopa-pn-cx-id": cx_id
-                },
+                headers: pnHeaders,
                 params: {
                     numberOfRecipients: 0,
                     createdAt: createdAt
