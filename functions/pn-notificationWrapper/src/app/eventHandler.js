@@ -82,6 +82,12 @@ async function handleEvent(event, context) {
         return createResponse(400, allowedOrigin, { error: "Invalid JSON body" }, requestHeaders);
     }
 
+    const pnHeaders = {
+        "x-pagopa-pn-uid": uid,
+        "x-pagopa-pn-cx-type": cx_type,
+        "x-pagopa-pn-cx-id": cx_id
+    };
+
     const pathDelivery = "/delivery-private/notifications/";
     const pathTimeline = "/timeline-service-private/history/";
     const pathSafeStorage = "safe-storage/v1/files/";
