@@ -27,7 +27,7 @@ async function handleEvent(event, context) {
     const allowedOrigin = event.headers?.origin;
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
-    auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
+    auditLog("", "AUD_ACC_START", allowedOrigin).info("info");
 
     if (event.httpMethod === "OPTIONS") {
         return createResponse(200, allowedOrigin, "", requestHeaders);
@@ -46,7 +46,7 @@ async function handleEvent(event, context) {
         cx_id = `BO-${uid}`
         auditLog(
             `Token successful decode`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_TOKEN_DECODE",
             allowedOrigin,
             "OK",
             cx_type,
@@ -58,7 +58,7 @@ async function handleEvent(event, context) {
     } catch (err) {
         auditLog(
             `Error decode token ${err.message}`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_TOKEN_DECODE_ERROR",
             allowedOrigin,
             "KO"
         ).warn("error");
@@ -72,7 +72,7 @@ async function handleEvent(event, context) {
     } catch (e) {
         auditLog(
             `Error take body ${e.message}`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_BODY_ERROR",
             allowedOrigin,
             "KO"
         ).warn("error");
@@ -101,7 +101,7 @@ async function handleEvent(event, context) {
         );
         auditLog(
             `Get delivery success`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_DELIVERY_GET",
             allowedOrigin,
             "OK",
             cx_type,
@@ -128,7 +128,7 @@ async function handleEvent(event, context) {
         );
         auditLog(
             `Get timeline success`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_TIMELINE_GET",
             allowedOrigin,
             "OK",
             cx_type,
@@ -212,7 +212,7 @@ async function handleEvent(event, context) {
     } catch (error) {
         auditLog(
             `Error retrieve data ${error.message}`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_DATA_RETRIEVE_ERROR",
             allowedOrigin,
             "KO"
         ).warn("error");
