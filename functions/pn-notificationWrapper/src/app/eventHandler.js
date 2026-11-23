@@ -1,3 +1,6 @@
+const AWSXRay = require('aws-xray-sdk-core');
+AWSXRay.captureHTTPsGlobal(require('http'));
+AWSXRay.captureHTTPsGlobal(require('https'));
 const axios = require('axios');
 const jsonwebtoken = require('jsonwebtoken');
 const { auditLog } = require("./log.js");
@@ -27,7 +30,7 @@ async function handleEvent(event, context) {
     const allowedOrigin = event.headers?.origin;
     const requestHeaders =
         event.headers?.["access-control-request-headers"] || "";
-    auditLog("", "AUD_ACC_LOGIN", allowedOrigin).info("info");
+    auditLog("", "AUD_ACC_START", allowedOrigin).info("info");
 
     if (event.httpMethod === "OPTIONS") {
         return createResponse(200, allowedOrigin, "", requestHeaders);
@@ -46,7 +49,7 @@ async function handleEvent(event, context) {
         cx_id = `BO-${uid}`
         auditLog(
             `Token successful decode`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_TOKEN_DECODE_HD",
             allowedOrigin,
             "OK",
             cx_type,
@@ -58,7 +61,7 @@ async function handleEvent(event, context) {
     } catch (err) {
         auditLog(
             `Error decode token ${err.message}`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_TOKEN_DECODE_ERROR_HD",
             allowedOrigin,
             "KO"
         ).warn("error");
@@ -72,7 +75,7 @@ async function handleEvent(event, context) {
     } catch (e) {
         auditLog(
             `Error take body ${e.message}`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_BODY_ERROR",
             allowedOrigin,
             "KO"
         ).warn("error");
@@ -88,20 +91,22 @@ async function handleEvent(event, context) {
     const urlDelivery = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathDelivery}${iun}`;
     const urlTimeline = `http://${process.env.APPLICATION_LOAD_BALANCER_DOMAIN}:8080${pathTimeline}${iun}`
 
+    const pnHeaders = {
+        "x-pagopa-pn-uid": uid,
+        "x-pagopa-pn-cx-type": cx_type,
+        "x-pagopa-pn-cx-id": cx_id
+    };
     try {
         const apiResponseDelivery = await axios.get(
             urlDelivery,
             {
-                headers: {
-                    "x-pagopa-pn-uid": uid,
-                    "x-pagopa-pn-cx-type": cx_type,
-                    "x-pagopa-pn-cx-id": cx_id
-                }
+                headers: pnHeaders
+
             }
         );
         auditLog(
             `Get delivery success`,
-            "AUD_ACC_LOGIN",
+            "AUD_NT_VIEW_HD",
             allowedOrigin,
             "OK",
             cx_type,
@@ -115,20 +120,16 @@ async function handleEvent(event, context) {
         const apiResponseTimeline = await axios.get(
             urlTimeline,
             {
-                headers: {
-                    "x-pagopa-pn-uid": uid,
-                    "x-pagopa-pn-cx-type": cx_type,
-                    "x-pagopa-pn-cx-id": cx_id
-                },
+                headers: pnHeaders,
                 params: {
-                    numberOfRecipients: 0,
+                    numberOfRecipients: apiResponseDelivery.data?.recipients?.length ?? 0,
                     createdAt: createdAt
                 }
             }
         );
         auditLog(
             `Get timeline success`,
-            "AUD_ACC_LOGIN",
+            "AUD_NT_TIMELINE",
             allowedOrigin,
             "OK",
             cx_type,
@@ -149,6 +150,17 @@ async function handleEvent(event, context) {
                     },
                 })
                     .then((res) => {
+                        auditLog(
+                            `Get timeline success`,
+                            "AUD_NT_DOCOPEN_HD",
+                            allowedOrigin,
+                            "OK",
+                            cx_type,
+                            cx_id,
+                            "",
+                            uid,
+                            ""
+                        ).info("success")
                         return {
                             ...element,
                             safeStorage: res.data
@@ -212,7 +224,7 @@ async function handleEvent(event, context) {
     } catch (error) {
         auditLog(
             `Error retrieve data ${error.message}`,
-            "AUD_ACC_LOGIN",
+            "AUD_ACC_DATA_RETRIEVE_ERROR_HD",
             allowedOrigin,
             "KO"
         ).warn("error");
