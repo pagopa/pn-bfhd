@@ -49,7 +49,7 @@ async function handleEvent(event, context) {
         cx_id = `BO-${uid}`
         auditLog(
             `Token successful decode`,
-            "AUD_ACC_TOKEN_DECODE",
+            "AUD_ACC_TOKEN_DECODE_HD",
             allowedOrigin,
             "OK",
             cx_type,
@@ -61,7 +61,7 @@ async function handleEvent(event, context) {
     } catch (err) {
         auditLog(
             `Error decode token ${err.message}`,
-            "AUD_ACC_TOKEN_DECODE_ERROR",
+            "AUD_ACC_TOKEN_DECODE_ERROR_HD",
             allowedOrigin,
             "KO"
         ).warn("error");
@@ -106,7 +106,7 @@ async function handleEvent(event, context) {
         );
         auditLog(
             `Get delivery success`,
-            "AUD_ACC_DELIVERY_GET",
+            "AUD_NT_VIEW_HD",
             allowedOrigin,
             "OK",
             cx_type,
@@ -129,7 +129,7 @@ async function handleEvent(event, context) {
         );
         auditLog(
             `Get timeline success`,
-            "AUD_ACC_TIMELINE_GET",
+            "AUD_NT_TIMELINE",
             allowedOrigin,
             "OK",
             cx_type,
@@ -150,6 +150,17 @@ async function handleEvent(event, context) {
                     },
                 })
                     .then((res) => {
+                        auditLog(
+                            `Get timeline success`,
+                            "AUD_NT_DOCOPEN_HD",
+                            allowedOrigin,
+                            "OK",
+                            cx_type,
+                            cx_id,
+                            "",
+                            uid,
+                            ""
+                        ).info("success")
                         return {
                             ...element,
                             safeStorage: res.data
@@ -213,7 +224,7 @@ async function handleEvent(event, context) {
     } catch (error) {
         auditLog(
             `Error retrieve data ${error.message}`,
-            "AUD_ACC_DATA_RETRIEVE_ERROR",
+            "AUD_ACC_DATA_RETRIEVE_ERROR_HD",
             allowedOrigin,
             "KO"
         ).warn("error");
