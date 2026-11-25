@@ -174,62 +174,110 @@ async function handleEvent(event, context) {
                     });
             })
         );
+        const timeline = apiResponseTimeline?.data?.timeline || [];
+
         const updatedTimeline = await Promise.all(
-            apiResponseTimeline.data.timeline.map(async (event) => {
-                // Se legalFactIds non esiste o è vuoto, restituisci subito l'evento invariato
-                if (!event.legalFactsIds || event.legalFactsIds.length === 0) {
+            timeline.map(async (event) => {
+                const hasLegalFacts = Array.isArray(event.legalFactsIds) && event.legalFactsIds.length > 0;
+                const hasAttachments = Array.isArray(event.details?.attachments) && event.details.attachments.length > 0;
+
+                if (!hasLegalFacts && !hasAttachments) {
                     return event;
                 }
 
-                const updatedLegalFactIds = await Promise.all(
-                    event.legalFactsIds.map(async (item) => {
-                        if (!item?.key || !item.key.startsWith("safestorage://")) {
-                            return item;
-                        }
+                const updatedLegalFactIds = hasLegalFacts
+                    ? await Promise.all(
+                        event.legalFactsIds.map(async (item) => {
+                            if (!item?.key || !item.key.startsWith("safestorage://")) {
+                                return item;
+                            }
 
-                        try {
-                            const fileKey = item.key.replace("safestorage://", "").split("?");
-                            const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
+                            try {
+                                const fileKey = item.key.replace("safestorage://", "").split("?")[0];
+                                const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
 
-                            const res = await axios.get(urlSafeStorage, {
-                                headers: {
-                                    "x-api-key": "pn-bfhd_api_key",
-                                    "x-pagopa-safestorage-cx-id": "pn-bfhd",
-                                },
-                            });
+                                const res = await axios.get(urlSafeStorage, {
+                                    headers: {
+                                        "x-api-key": "pn-bfhd_api_key",
+                                        "x-pagopa-safestorage-cx-id": "pn-bfhd",
+                                    },
+                                });
 
-                            auditLog(
-                                `legal ${JSON.stringify(res.data)}`,
-                                "AUD_ACC_LOGIN",
-                                allowedOrigin,
-                                "OK",
-                                cx_type,
-                                cx_id,
-                                "",
-                                uid,
-                                ""
-                            ).info("success");
+                                auditLog(
+                                    `legal ${JSON.stringify(res.data)}`,
+                                    "AUD_ACC_LOGIN",
+                                    allowedOrigin,
+                                    "OK",
+                                    cx_type,
+                                    cx_id,
+                                    "",
+                                    uid,
+                                    ""
+                                ).info("success");
 
-                            return {
-                                ...item,
-                                key: res.data,
-                            };
-                        } catch (error) {
-                            if (error.response && error.response.status === 410) {
-                                documentCancelledCount++;
                                 return {
                                     ...item,
-                                    key: "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento",
+                                    data: res.data,
                                 };
+                            } catch (error) {
+                                if (error.response && error.response.status === 410) {
+                                    documentCancelledCount++;
+                                    return {
+                                        ...item,
+                                        key: "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento",
+                                    };
+                                }
+                                throw error;
                             }
-                            throw error;
-                        }
-                    })
-                );
+                        })
+                    )
+                    : event.legalFactsIds;
+
+                const updatedAttachmentDetails = hasAttachments
+                    ? await Promise.all(
+                        event.details.attachments.map(async (item) => {
+                            if (!item?.url || !item.url.startsWith("safestorage://")) {
+                                return item;
+                            }
+
+                            try {
+                                const fileKey = item.url.replace("safestorage://", "").split("?")[0];
+                                const urlSafeStorage = `${process.env.SAFE_STORAGE}${pathSafeStorage}${fileKey}`;
+
+                                const res = await axios.get(urlSafeStorage, {
+                                    headers: {
+                                        "x-api-key": "pn-bfhd_api_key",
+                                        "x-pagopa-safestorage-cx-id": "pn-bfhd",
+                                    },
+                                });
+
+                                return {
+                                    ...item,
+                                    data: res.data,
+                                };
+                            } catch (error) {
+                                if (error.response && error.response.status === 410) {
+                                    documentCancelledCount++;
+                                    return {
+                                        ...item,
+                                        url: "Documenti non disponibili in quanto cancellati dopo 120gg dal perfezionamento",
+                                    };
+                                }
+                                throw error;
+                            }
+                        })
+                    )
+                    : event.details?.attachments;
 
                 return {
                     ...event,
-                    legalFactsIds: updatedLegalFactIds,
+                    ...(event.details && {
+                        details: {
+                            ...event.details,
+                            ...(hasAttachments && { attachments: updatedAttachmentDetails }),
+                        },
+                    }),
+                    ...(hasLegalFacts && { legalFactsIds: updatedLegalFactIds }),
                 };
             })
         );
