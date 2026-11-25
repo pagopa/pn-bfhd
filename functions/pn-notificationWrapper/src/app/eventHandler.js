@@ -178,10 +178,9 @@ async function handleEvent(event, context) {
 
         const updatedTimeline = await Promise.all(
             timeline.map(async (event) => {
-                const hasLegalFacts = Array.isArray(event.legalFactsIds) && event.legalFactsIds.length > 0;
                 const hasAttachments = Array.isArray(event.details?.attachments) && event.details.attachments.length > 0;
 
-                if (!hasLegalFacts && !hasAttachments) {
+                if (!hasAttachments) {
                     return event;
                 }
 
@@ -229,7 +228,6 @@ async function handleEvent(event, context) {
                             ...(hasAttachments && { attachments: updatedAttachmentDetails }),
                         },
                     }),
-                    ...(hasLegalFacts && { legalFactsIds: updatedLegalFactIds }),
                 };
             })
         );
